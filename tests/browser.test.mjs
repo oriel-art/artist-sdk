@@ -399,7 +399,7 @@ test('sliders, searchable long palettes, swatches and grouped boundaries work wi
   await page.evaluate(async () => {
     const { createArtwork } = await import('/src/index.js');
     const { createParameterPanel } = await import('/src/parameter-panel.js');
-    const choices = Array.from({ length: 44 }, (_, i) => `Palette ${i}: a long descriptive constellation of colors`);
+    const choices = Array.from({ length: 44 }, (_, i) => `Palette ${i}: a long descriptive constellation of colors for the quiet hours between dusk and dawn, with warm copper and deep blue`);
     window.visualArt = createArtwork({ id: 'visual-controls', version: '1', seed: 'visual', parameters: {
       radius: { type: 'number', min: 0, max: 1, label: 'Formation radius', default: .5, ui: { step: .01 } },
       palette: { type: 'choice', choices, default: choices[0], label: 'Palette', ui: { swatches: choices.map(() => ['#843', '#bca', '#112233']) } }
@@ -417,11 +417,16 @@ test('sliders, searchable long palettes, swatches and grouped boundaries work wi
   const choice = dialog.getByRole('button', { name: /Choose Palette 43:/ });
   await choice.focus(); await choice.press('Space');
   assert.equal(await choice.evaluate(button => button.getRootNode().activeElement === button), true);
-  assert.equal(await choice.locator('.choice-name').evaluate(label => label.clientHeight > parseFloat(getComputedStyle(label).lineHeight)), true);
+  assert.equal(await choice.locator('.choice-name').evaluate(label => {
+    const range = label.ownerDocument.createRange(); range.selectNodeContents(label);
+    const lines = [...range.getClientRects()], bounds = label.getBoundingClientRect();
+    return lines.length > 1 && lines.every(line => line.left >= bounds.left - 1 && line.right <= bounds.right + 1)
+      && label.scrollWidth <= label.clientWidth;
+  }), true);
   await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
   const result = await page.evaluate(() => window.visualArt.parameters);
   assert.equal(result.radius, .271234); assert.match(result.palette, /^Palette 43:/);
-  assert.match(await dialog.locator('.selected-choice').innerText(), /constellation of colors$/);
+  assert.match(await dialog.locator('.selected-choice').innerText(), /constellation of colors/);
   const groups = await dialog.getByLabel('Boundary case', { exact: true }).locator('optgroup').evaluateAll(nodes => nodes.map(n => n.label));
   assert.deepEqual(groups, ['Formation radius', 'Palette']);
   const bounds = await dialog.evaluate(d => ({ left: d.getBoundingClientRect().left, top: d.getBoundingClientRect().top, overflow: d.scrollWidth > d.clientWidth }));
