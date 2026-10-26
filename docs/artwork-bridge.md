@@ -60,6 +60,24 @@ For the initial protocol, commands and queries are host-initiated. Artwork
 requests for host services, such as a download dialog, are a later negotiated
 capability; emitting an event does not authorize a host-side action.
 
+### Host API and wire protocol
+
+Expose asynchronous discovery and queries at the host boundary, since an iframe
+may need time to connect and answer. Commands return a typed result or operation
+handle with acceptance, completion, and failure semantics; a fire-and-forget
+`void` dispatch cannot provide reliable export or transition control.
+
+Define per-operation argument, response, and event schemas instead of public
+`any` payloads. Broad tags such as playback or transcript are discovery aids,
+not substitutes for operation-level types, availability, and permissions. Use
+an explicit experimental protocol version through the pilot rather than implying
+a stable 1.0 contract.
+
+The convenient host API is separate from the wire format. Subscription callbacks
+stay in the host; serialize subscription requests, IDs, event data, and errors,
+not handler functions. Host implementations for browser embeds, test harnesses,
+or native shells must each supply an appropriate transport and connection policy.
+
 ## Discovery and capability descriptions
 
 An artwork should advertise its artwork ID, running-instance ID, recipe/code
@@ -153,6 +171,12 @@ Queries are read-only. Reading a poem must not draw a new random value, advance
 the animation, or modify the recipe. Return a revision and capture time or frame
 when useful so the host knows which moment the response describes.
 
+The guarantee is observational, side-effect-free behavior, not repeated equal
+answers from a changing artwork. Two queries may legitimately return different
+stanzas because independent animation advanced between them. A query must not
+cause that advancement. Include the relevant revision/position with a result;
+test nonmutation under controlled time separately from live-state freshness.
+
 Example response to the proposed `poetry.current` query:
 
 ```json
@@ -219,6 +243,11 @@ unrecorded time, network data, or randomness affects the result.
 Snapshot/restore and deterministic replay are advanced capabilities, not
 requirements for basic discovery and read-only queries. Pause is also not
 assumed to freeze every source of state unless the artwork declares that behavior.
+
+Expose the supported [temporal reconstruction modes](feature-plan.md#temporal-reconstruction)
+through discovery. Where seeking exists, declare time units, step semantics,
+whether replay is required, and available progress/cancellation behavior.
+Do not imply that a frame number alone is enough to reconstruct a simulation.
 
 ## Message contract and connection policy
 
@@ -287,13 +316,17 @@ without a full workbench.
 The poetry reference should demonstrate that:
 
 1. The host discovers the available operations and their schemas.
-2. A query returns the visible poem without changing its revision or random state.
+2. Under controlled time, a query returns the visible poem without changing
+   its revision or random state. During playback, each response identifies the
+   state it observed without claiming all repeated queries must be identical.
 3. A physical activation and a bridge command invoke the same artistic behavior.
 4. Advancing the poem produces an ordered event and an identifiable completion.
 5. Repeated request IDs do not cause a second advance within the session.
 6. Invalid arguments and unsupported operations produce structured errors.
 7. Multiple instances, reload, disconnect, and stale messages remain isolated.
 8. The artwork still runs standalone without a connected host.
+9. Asynchronous discovery and commands distinguish acceptance, completion, and
+   errors. Unsupported temporal operations are discoverable and rejected clearly.
 
 Snapshot/restore, atomic image/text capture, agent-session routing, dynamic
 exhibition bindings, gesture streams, and multi-artwork orchestration follow
