@@ -1,9 +1,10 @@
 # Artwork bridge feature specification
 
-Status: proposal, October 26, 2026. Operation names, message fields, and examples
-are design sketches, not an implemented API or a frozen protocol. This module
-is part of the [feature plan](feature-plan.md) and enters the first functional
-milestone in the [roadmap](roadmap.md).
+Status: broader proposal, October 26, 2026. The experimental `artist-bridge/0.1`
+subset is implemented and documented in the [pilot guide](pilot-guide.md).
+Operation names, message fields, and examples below remain design sketches;
+they are not the implemented wire schema or a frozen protocol. This module is
+part of the [feature plan](feature-plan.md) and [roadmap](roadmap.md).
 
 ## Purpose
 

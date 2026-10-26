@@ -1,8 +1,9 @@
 # Artist SDK roadmap
 
-Status: proposed sequence, October 26, 2026. All implementation milestones below
-are pending. This planning change creates no SDK code, prototype, CI workflow,
-package, platform integration, or deployment.
+Status: first experimental toolkit implemented, October 26, 2026. The
+`0.1.0-alpha.1` pilot is ready for an artist integration trial; M0 design
+validation and the broader milestones remain open. There is no npm registry
+release, production platform integration, or deployment.
 
 Read the [feature plan](feature-plan.md) for scope and the
 [artwork bridge specification](artwork-bridge.md) for the viewer protocol.
@@ -15,23 +16,57 @@ dates. Effort estimates should follow the initial artwork trials.
 
 | Milestone | Outcome | Depends on |
 | --- | --- | --- |
-| M0 Design validation | Contracts and representative artworks chosen | Artist and platform examples |
-| M1 Reproducible artwork and basic bridge | A usable local SDK slice across all three renderers | M0 |
+| M0a First WebGL toolkit | A small SDK Mihira can try; implemented experimentally | Plain JavaScript/WebGL brief |
+| M0b Artist-led design validation | One actual integration and a recorded design review | M0a and Mihira's artwork |
+| M1 Reproducible artwork and basic bridge | Harden the pilot and extend to additional renderer examples | M0 feedback |
 | M2 Collection and viewer workflows | Exploration, validation, and real bitVerse integration | M1 |
 | M3 Platform readiness | Verified runtime adapters and publication bundles | M1, with M2 validation tooling |
 | M4 Production publishing | Supported releases can be published and verified | M3 and target access |
 | M5 Advanced output and extensions | Large-format, temporal, and specialized capabilities | Relevant earlier contracts |
 
-M0 through M1 form the initial artist pilot. M2 and M3 can progress independently
+M0 through M1 form an iterative artist pilot. Deliver useful code before asking
+for detailed design feedback. M2 and M3 can progress independently
 once shared contracts stabilize, but a target release should use the validation
 tools before production publishing. M5 is a set of separately justified
 extensions, not a requirement for every artist or platform.
 
 ## M0 Design validation
 
+### M0a: working toolkit delivered
+
+The [pilot guide](pilot-guide.md) is the source of truth for implemented behavior:
+
+- Dependency-free ES modules for full-string seeds, named random streams,
+  scalar parameters, derived traits, recipe import/export, URL inputs and shortcuts.
+- Optional WebGL 1 single-pass GLSL runner, typed scalar/vector uniforms,
+  direct-time rendering, isolated PNG export, resource preflight and context recovery.
+- Origin-checked iframe bridge with discovery, validated inputs, ordered
+  commands/queries, events, structured errors, duplicate handling, and teardown.
+- Local shader studio and host viewer; core tests, real-browser integration
+  tests, and bundled/minified size measurements.
+
+This is a deliberately small implementation, not completion of M1. The recipe
+contains canonical seed/parameter inputs only. The runner does not support
+WebGL 2, textures, multipass feedback or simulation replay. The bridge does not
+yet implement output schemas, long-operation handles, or platform-specific
+permissions. Library integrations, adapters, publishing and TypeScript declarations
+remain planned. Core utilities can be used with an artist-owned renderer.
+
+### M0b: artist trial and design review — pending
+
+Provide the toolkit to Mihira and observe one real integration. Record browser,
+GPU, WebGL/GLSL versions, uniforms, extensions/assets, render passes, time/state
+dependencies, target export size, code changes, and integration effort. Use
+the guide's feedback checklist. Revise the SDK based on that session before
+expanding renderer support. Do not treat a passing sample or test suite as
+evidence that Mihira's work is supported.
+
 ### Planned work
 
-- Select an existing Mihira artwork in p5.js, Canvas 2D, and Three.js/WebGL.
+- Begin with one existing Mihira artwork in plain JavaScript/WebGL. Request
+  the source entry point and shaders needed for integration, plus its current
+  seed/time/resolution conventions. Select p5.js, Canvas 2D, and Three.js
+  examples later when testing those integrations; they do not block this trial.
 - Identify a generative-poetry example that exposes current text and an
   interaction; it may also serve as one of the renderer examples.
 - Ensure the reference set includes static, time-dependent, and interactive
@@ -73,7 +108,8 @@ extensions, not a requirement for every artist or platform.
 Document the selected examples, required adoption changes, capability matrix,
 known limitations, and decisions in a design review. Confirm an artist can
 adopt individual utilities without accepting the complete lifecycle framework.
-Resolve the M1 blockers listed under open decisions below before building them.
+Resolve the relevant M1 blockers listed below before extending or stabilizing
+their contracts; the small M0a APIs remain provisional until artist trials.
 The review chooses initial contracts to test, not permanent public schemas.
 Include an artist-adoption assessment and an integration/reuse decision for
 existing tools; architectural feedback alone does not establish artist demand.
@@ -82,6 +118,9 @@ existing tools; architectural feedback alone does not establish artist demand.
 
 ### Planned scope
 
+The M0a subset above is available. The items and exit criteria below describe
+the broader milestone and are not all implemented in `0.1.0-alpha.1`.
+
 - Versioned recipes, seed handling, deterministic random streams, keyed
   sampling, and uniform/weighted choices plus initial normal, truncated-normal,
   and log-uniform distributions.
@@ -89,7 +128,8 @@ existing tools; architectural feedback alone does not establish artist demand.
   deterministic trait mapping, and JSON recipe import/export.
 - URL helpers, explicit environment modes, asset readiness, action registry,
   keyboard controls, and basic viewport/lifecycle hooks.
-- Basic integrations for all three renderer targets, with visible PNG capture
+- Extend the raw-WebGL pilot with p5.js, Canvas 2D, and Three.js integrations,
+  with visible PNG capture
   and high-resolution rerender hooks where the example supports them. Include
   composition/display/output transforms and declared effect-scaling policies.
 - Asynchronous render completion and failure reporting, export preflight,
@@ -320,6 +360,7 @@ versions in released artworks rather than silently upgrading them.
 | Signing, storage, and publication responsibilities | Determines transaction UX and recovery behavior | M4 |
 | Supported export sizes, color baseline, and print requirements | Bounds output promises and advanced work | M1 baseline; M5 extensions |
 
-Next action after this planning stage: select the reference artworks and work
-through M0. Implementation starts only when requested; this roadmap is not an
-instruction to begin coding or to publish any artwork.
+Next action: Mihira tries the M0a SDK on their first JavaScript/WebGL project.
+Record the M0b integration findings and refine the pilot before declaring a
+stable API or starting broader M1 renderer work. Publishing artwork remains a
+separate, later workflow.

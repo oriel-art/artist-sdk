@@ -1,0 +1,83 @@
+import { createArtwork, readInputs, shareURL, downloadBlob, bindShortcuts } from '../../src/index.js';
+import { createShaderRenderer } from '../../src/webgl.js';
+import { exposeArtwork } from '../../src/bridge.js';
+import { fragment } from './shader.js';
+
+const $ = id => document.getElementById(id);
+const status = message => { $('status').textContent = message; };
+const report = error => status(`${error.code ?? 'ERROR'}: ${error.message}`);
+try {
+  const inputs = readInputs(location.href);
+  const art = createArtwork({ id: 'contour-study', version: '1', seed: inputs.seed ?? 'mihira-pilot-001',
+    parameters: { density: { type: 'integer', min: 8, max: 36, label: 'Line density' },
+      palette: { type: 'choice', choices: ['ochre', 'tide', 'clay'], label: 'Palette' } },
+    values: inputs.values, events: ['playback.changed'],
+    traits: p => ({ Palette: p.palette, Density: p.density < 18 ? 'Sparse' : 'Dense' }) });
+  const palettes = { ochre: [[.17,.22,.19],[.86,.65,.35]], tide: [[.12,.27,.30],[.82,.86,.77]], clay: [[.15,.15,.17],[.78,.39,.27]] };
+  const canvas = $('art');
+  const renderer = createShaderRenderer({ canvas, artwork: art, fragment, onError: report,
+    uniforms: ({ parameters }) => ({ u_density: parameters.density,
+      u_ink: palettes[parameters.palette][0], u_paper: palettes[parameters.palette][1] }) });
+  let time = 0, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let previous = performance.now(), frame, disposed = false;
+  const paint = () => {
+    const width = Math.max(1, Math.round(canvas.clientWidth * Math.min(devicePixelRatio, 2)));
+    renderer.render({ width, height: width, time });
+    $('dimensions').textContent = `${width} × ${width} / ${time.toFixed(1)}s`;
+  };
+  const update = () => {
+    $('density').value = art.parameters.density;
+    $('density-label').textContent = art.parameters.density;
+    $('palette').value = art.parameters.palette;
+    paint();
+  };
+  const playback = next => {
+    playing = next; previous = performance.now();
+    $('pause').textContent = playing ? 'Pause' : 'Play';
+    art.emit('playback.changed', { playing, time });
+    return { playing, time };
+  };
+  art.registerCommand('playback.set', { description: 'Pause or resume the live work', input: { playing: { type: 'boolean' } }, handler: ({ playing }) => playback(playing) });
+  art.registerCommand('time.seek', { description: 'Evaluate this stateless shader at a time in seconds', input: { time: { type: 'number', min: 0, max: 86400 } }, handler: input => {
+    time = input.time; previous = performance.now(); art.changed({ time }); paint(); return { time };
+  } });
+  art.registerCommand('parameters.set', { description: 'Change studio line density', input: { density: { type: 'number', min: 8, max: 36 } }, handler: ({ density }) => { const result = art.setParameters({ density }); update(); return result; } });
+  art.registerQuery('content.current', { description: 'Artist-authored description of the visible composition', handler: () => ({
+    text: `A ${art.parameters.palette} field of ${art.parameters.density} contour bands.`, time: renderer.getSnapshot()?.time ?? 0, playing
+  }) });
+  // This example accepts its own origin only. A deployed host needs an explicit allowlist.
+  const stopBridge = exposeArtwork(art, { allowedOrigins: [location.origin] });
+  $('seed').value = art.seed; $('seed-label').textContent = art.seed;
+  $('seed-form').addEventListener('submit', event => { event.preventDefault(); const url = new URL(location.href); url.searchParams.set('seed', $('seed').value); url.searchParams.delete('params'); location.href = url.href; });
+  $('density').addEventListener('input', () => { try { art.setParameters({ density: Number($('density').value) }); update(); } catch (error) { report(error); } });
+  $('palette').addEventListener('change', () => { art.setParameters({ palette: $('palette').value }); update(); });
+  $('pause').addEventListener('click', () => playback(!playing));
+  $('reset').addEventListener('click', () => { art.command('time.seek', { time: 0 }).catch(report); });
+  const save = async () => {
+    $('save').disabled = true; status('Rendering a separate PNG…');
+    try {
+      const size = Number($('size').value);
+      const blob = await renderer.exportPNG({ width: size, height: size });
+      downloadBlob(blob, `${art.id}-${art.seed.replace(/[^\w-]/g, '_').slice(0, 60)}-${size}.png`);
+      status(`Saved ${size} × ${size}. The live state is unchanged.`);
+    } finally { $('save').disabled = false; }
+  };
+  $('save').addEventListener('click', () => save().catch(report));
+  $('recipe').addEventListener('click', () => downloadBlob(new Blob([JSON.stringify(art.getRecipe(), null, 2)], { type: 'application/json' }), `${art.id}-recipe.json`));
+  $('link').addEventListener('click', async () => { try { await navigator.clipboard.writeText(shareURL(location.href, art.getRecipe())); status('Link copied. It preserves parameters and seed; animation starts at 0s.'); } catch (error) { report(error); } });
+  const unbind = bindShortcuts(canvas, { s: save, ' ': () => playback(!playing), i: () => { $('info').open = !$('info').open; } }, report);
+  const animate = now => {
+    if (disposed) return;
+    if (playing) time += Math.min((now - previous) / 1000, .1);
+    previous = now;
+    try { if (playing) paint(); } catch (error) { playback(false); report(error); }
+    frame = requestAnimationFrame(animate);
+  };
+  const observer = new ResizeObserver(() => { try { paint(); } catch (error) { report(error); } });
+  observer.observe(canvas);
+  update(); playback(playing); status('Ready. Every variation starts with a seed.');
+  frame = requestAnimationFrame(animate);
+  addEventListener('pagehide', () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); unbind(); stopBridge(); renderer.dispose(); }, { once: true });
+  // Local example diagnostics, not part of the bridge or SDK global API.
+  window.pilot = { art, renderer, pause: () => playback(false) };
+} catch (error) { report(error); }
