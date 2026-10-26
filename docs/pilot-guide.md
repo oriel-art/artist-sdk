@@ -279,6 +279,7 @@ The browser suite uses installed Chrome on macOS. Elsewhere install its Chromium
 with `npx playwright install chromium`; `PLAYWRIGHT_CHANNEL=chrome` overrides the
 channel. Tests use software WebGL for repeatability; real-device visual fidelity,
 Safari/Firefox/mobile GPUs, and Mihira's artwork still need artist trials.
+CI uses Chrome preinstalled on GitHub's Ubuntu 24.04 runner.
 Screenshots are written to the ignored `test-results` directory.
 
 `npm run size` reports minified, bundled, tree-shaken browser ESM and gzip costs
