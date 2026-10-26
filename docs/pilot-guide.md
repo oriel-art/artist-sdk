@@ -1,12 +1,14 @@
 # Mihira's JavaScript / WebGL pilot
 
-Version: **0.1.0-alpha.2**. This is an experimental SDK to try on an actual
+Version: **0.1.0-alpha.3**. This is an experimental SDK to try on an actual
 artwork. It contains working code and examples; the broader feature plan remains
 a proposal. APIs and recipe/protocol versions can change after artist feedback.
 
 The first project, **Kepler's Dream**, uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
 Three.js, React, build step, network service, or runtime dependency is required.
-The SDK has not yet been validated against Mihira's source code.
+An alpha.2 integration has been reported; its source/tests have not been supplied
+here. Read the [feedback record](keplers-dream-feedback.md) and
+[alpha.3 integration guide](alpha3-guide.md) for revisions and remaining validation.
 
 ## Start with the working examples
 
@@ -26,8 +28,9 @@ Try this sequence:
 1. Open a seed and adjust the density and palette.
 2. Pause, or return to time zero. Focus the canvas and try `s`, `Space`, and `i`.
 3. Save a PNG at 1024, 2048, or 4096 pixels square, subject to device limits.
-4. Save the recipe or copy the link. A link restores seed and parameters and
-   starts the animation at zero. Recipe import is available through `fromRecipe`.
+4. Save the recipe or copy the link. The demo captures the displayed elapsed
+   time and square aspect ratio, restoring the moment paused. `fromRecipe`
+   validates core inputs; `restoreRecipe` invokes an explicit artist restoration hook.
 5. Open the bridge viewer. Inspect its manifest, pause, seek to 12 seconds,
    change density, and ask the artwork for its current content.
 6. Open **About this work · i** for artist-written information. Open **Parameter
@@ -103,7 +106,9 @@ Runner support is **WebGL 1 / GLSL ES 1.00, one fragment pass**, with scalar
 float/int/bool and float vec2/vec3/vec4 uniforms. Active uniforms must have values.
 It supplies `u_resolution` (output pixels), `u_time` (seconds), and `u_seed`
 (four deterministic floats in [0, 1)); shaders may omit unused uniforms.
-These reserved values override custom values. Samplers, arrays, matrices,
+By default these automatic values override custom values. Configure `bindings`
+with a different uniform name or null to give ownership to the artist; see the
+[alpha.3 guide](alpha3-guide.md#preserve-the-original-export-uniforms). Samplers, arrays, matrices,
 custom geometry/vertex shaders, WebGL 2 shaders, feedback, and external textures
 require an artist-owned renderer; export support for those is future work.
 
@@ -119,7 +124,9 @@ require an artist-owned renderer; export support for those is future work.
   keyed streams, so labels, object order, or unrelated parameters do not alter
   an existing parameter's sampled value.
 - Supported parameter types are `number`, `integer`, `boolean`, and `choice`.
-  Resolution priority is explicit value, then default, then sampled value.
+  With the default SDK generator, resolution priority is explicit value, then default, then sampled value.
+  An optional versioned artist `resolver` runs original generation first, then
+  applies overrides. Complete supplied values bypass generation on import.
   Numeric bounds are required; boolean probability and choice weights are optional.
   Dependencies, constraints, vectors, colors, and additional declarative
   distributions are not implemented.
@@ -131,17 +138,25 @@ require an artist-owned renderer; export support for those is future work.
   controls when your UI policy allows them. Custom commands remain the artist's
   responsibility; this flag is not a security boundary or platform adapter.
 
-`artwork.getRecipe()` returns JSON with `format`, `artworkId`, `artworkVersion`,
-`randomVersion`, `seed`, and fully resolved `parameters`. Restore with
-`fromRecipe(recipe, originalArtworkOptions)`. It validates complete values and
-requires matching artwork and algorithm versions; it does not silently migrate.
+`artwork.getRecipe()` returns recipe format 0.2 with `artworkId`, `artworkVersion`,
+`randomVersion`, parameter `generator`, `seed`, and fully resolved `parameters`.
+Optional artist context carries a schema ID/version and validated JSON.
+`getRecipe({ context: data })` captures a new comparison context; ordinary
+`getRecipe()` preserves imported context, without observing the live clock.
 
-The pilot recipe preserves **canonical inputs**, not the displayed animation
-moment. It does not include time, physics/feedback buffers, interaction history,
-composition dimensions, source/assets, or content hashes. Keep the matching
-artwork source and assets with the recipe. Cross-device pixel identity is not
-promised, particularly for GLSL math. The broader recipe in the feature plan is
-a future format, not the format to serialize today.
+`fromRecipe(recipe, originalArtworkOptions)` validates complete values and matching
+artwork, generator and context versions, returning core state with `getContext()`.
+It does not restore rendering. `restoreRecipe(recipe, { ...options, restoreContext })`
+explicitly awaits an artist hook to apply time/cadence/aspect and render. Missing
+hooks for context-bearing recipes and incompatible versions fail explicitly.
+Legacy 0.1 SDK recipes still import with documented context-free defaults;
+legacy artist integrations require explicit generator-identity migration.
+
+See the [alpha.3 guide](alpha3-guide.md#save-and-restore-a-comparison-moment) for
+full APIs and URL migration. Context supports an artwork's own direct-time
+reconstruction; it is not a generic simulation, feedback-buffer or interaction
+history snapshot. Keep matching artwork source/assets with recipes. Cross-device
+pixel identity is not promised, particularly for GLSL math.
 
 ## Rendering and exporting
 
@@ -255,8 +270,9 @@ Verse, Art Blocks, and Forever Library adapters remain future work.
 
 ## Feedback to collect from Mihira
 
-Start with **one existing plain JavaScript/WebGL artwork** and one actual
-integration session. No need to prepare three renderer examples first.
+The reported Kepler's Dream integration establishes a starting point. Use the
+[alpha.3 feedback checklist](keplers-dream-feedback.md#m0b-validation-still-required)
+for the next actual artist session; other renderer examples do not block it.
 
 - Which WebGL/GLSL version, browser/GPU, and extensions does it use?
 - Is it one pass, multiple passes, texture-based, or dependent on previous frames?
@@ -271,7 +287,7 @@ integration session. No need to prepare three renderer examples first.
   error messages, integration time, and a short list of friction points.
 
 Those observations determine the next renderer/export work and any changes to
-the API. The first artist integration and broader M0 design review remain open.
+the API. Alpha.3 artwork revalidation and the broader M0 design review remain open.
 
 ## Verification and size
 
@@ -294,21 +310,24 @@ for useful combinations, including their dependencies. It excludes artist code,
 shaders, assets, and the studio page. Budgets will be set after the first actual
 integration; an on-chain-size guarantee is not implied.
 
-Initial measurement with esbuild 0.28.2 (ES2022 ESM, gzip level 9):
+Alpha.3 measurement with esbuild 0.28.2 (ES2022 ESM, gzip level 9):
 
 | Imported functionality | Minified bytes | Gzip bytes |
 | --- | ---: | ---: |
-| Randomness | 1,835 | 990 |
-| Parameters and recipes | 7,343 | 3,089 |
-| Browser helpers | 1,470 | 844 |
-| Bridge, artwork and host | 4,946 | 2,316 |
-| Shader runner | 7,462 | 3,458 |
-| Core, renderer, and bridge | 19,130 | 7,876 |
-| Optional info popup | 8,775 | 3,683 |
-| Optional parameter testing | 6,273 | 2,725 |
-| Optional parameter panel | 17,799 | 7,201 |
+| Randomness | 1,835 | 989 |
+| Parameters and recipes (including restoreRecipe) | 10,623 | 4,134 |
+| Browser helpers | 2,156 | 1,018 |
+| Bridge, artwork and host | 4,946 | 2,317 |
+| Shader runner | 7,985 | 3,681 |
+| Core, renderer, and bridge | 23,646 | 9,222 |
+| Optional info popup | 11,067 | 4,382 |
+| Optional parameter testing | 10,582 | 4,180 |
+| Optional parameter panel | 30,125 | 11,342 |
 
 Rows are alternative bundles with shared dependencies included, not additive costs.
+Alpha.3 adds recipe/context validation and richer optional studio UI; the panel
+increased from 7,201 to 11,342 gzip bytes. Basic core imports still exclude it.
+Record target-specific bundle needs before declaring an on-chain budget.
 
 Browser design references: [WebGL resource and context guidance](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices)
 and [origin/source checks for postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).

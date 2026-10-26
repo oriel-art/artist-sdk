@@ -24,3 +24,13 @@ export function identifier(value) {
     && !['__proto__', 'constructor', 'prototype'].includes(value), 'Invalid identifier');
   return value;
 }
+
+export function seedValue(seed) {
+  requireValue(typeof seed === 'string' && seed.length > 0 && seed.length <= 4096, 'Seed must be a nonempty string of at most 4096 characters');
+  return seed;
+}
+
+export function synchronous(value, label) {
+  if (value?.then) { Promise.resolve(value).catch(() => {}); requireValue(false, `${label} must be synchronous`); }
+  return value;
+}

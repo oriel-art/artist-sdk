@@ -1,7 +1,7 @@
 # Artist SDK feature plan
 
 Status: broader proposed scope, updated October 26, 2026. A limited raw-WebGL
-pilot is now implemented; see the [pilot guide](pilot-guide.md) for its actual
+pilot through `0.1.0-alpha.3` is implemented; see the [pilot guide](pilot-guide.md) for its actual
 API and boundaries. This document describes the larger product, not a list of
 already delivered features. Milestones and delivery criteria are in the
 [roadmap](roadmap.md); the [artwork bridge](artwork-bridge.md) defines the
@@ -33,6 +33,43 @@ The product has five themes and a shared artwork bridge:
 The bridge connects all five themes to a viewer such as bitVerse. It allows an
 artwork to advertise interactions, accept commands, answer state queries, and
 emit events without exposing its internal implementation.
+
+## Decisions from the Kepler's Dream pilot
+
+The [integration feedback](keplers-dream-feedback.md) reports successful alpha.2
+adoption while retaining the original renderer, identity algorithm, random draw
+order and Verse preview behavior. Alpha.3 implements the following focused
+revisions; see the [integration guide](alpha3-guide.md) for the actual API.
+
+- **Original generation is a first-class input.** Artwork construction and
+  sampling accept the same versioned artist resolver. Complete recorded values
+  are authoritative on replay. Reports distinguish SDK exploration from artist
+  generation and record the exact seed source; neither implies edition rarity
+  without a representative sample and matching generation rules.
+- **A diagnostic must lead to a reproducible case.** Preserve seed, complete
+  values, generator/artwork versions and chosen context. Each report case can
+  invoke an artist-owned preview or download a recipe. Do not apply parameters
+  to an unrelated live seed or regenerate a saved case.
+- **Screening is not artistic judgment.** Separate warnings, failed constraints
+  and execution errors. Keep all cases, including invalid resolutions, without
+  silently dropping or resampling. The reported 23/500 geometric flags require
+  visual review and do not establish an edition failure rate.
+- **Rendering context is explicit data with restoration rules.** Recipe 0.2
+  optionally records an artist schema ID/version and validated JSON for elapsed
+  time, cadence and composition aspect ratio. Separate capture from restoration;
+  reject unknown versions and make defaults for context-free recipes explicit.
+  This does not implement deterministic stepping, checkpoints or GPU snapshots.
+- **Studio controls should fit existing work.** Offer exact numeric entry beside
+  sliders, searchable wrapped choice names and optional swatches, readable
+  boundary groups and configurable panel placement. Keep this UI optional and
+  preserve artist-owned playback; a shared studio shell remains future work.
+- **Shader conventions are configurable.** Automatic resolution, time and seed
+  uniform bindings can be renamed or disabled. Captured artist values remain
+  fixed during isolated export; only the enabled resolution binding changes.
+
+M0b remains open for alpha.3 artwork revalidation, Mihira's observed hands-on
+review, real-device visuals, 4096 exports, additional browsers and Verse sandbox
+validation. Reported artwork tests and the SDK's own fixtures are separate evidence.
 
 ## Artist workflows
 
