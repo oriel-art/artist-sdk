@@ -6,6 +6,8 @@ package, platform integration, or deployment.
 
 Read the [feature plan](feature-plan.md) for scope and the
 [artwork bridge specification](artwork-bridge.md) for the viewer protocol.
+The [artist proposal](artist-proposal.md) presents the same direction for artist
+review and sharing.
 Milestones are ordered by dependencies and demonstrated outcomes, not calendar
 dates. Effort estimates should follow the initial artwork trials.
 
@@ -39,11 +41,18 @@ extensions, not a requirement for every artist or platform.
   larger export, collection review, and a platform preview.
 - Agree on the recipe boundary, seed normalization, generator versioning,
   parameter evaluation, and canonical versus session state.
+- Define independent recipe/schema versions, full seed derivation, source/asset
+  identity, derived-trait validation, and provenance that does not affect output.
+- Classify reference works as static, direct-time, stepped, or checkpoint-based.
+  Specify time units, step origin, required state, and supported seeking behavior.
 - Specify renderer capabilities and supported library/browser versions.
 - Draft the composition/display/output coordinate contract, aspect policies,
   and explicit scaling rules for strokes, texture, noise, and effects.
 - Draft bridge schemas, connection policy, command ordering, and content-query
   semantics using the poetry example.
+- Separate asynchronous host APIs from wire messages, with typed operation
+  results and completion/errors. Draft renderer-neutral requests and results,
+  backend-specific targets, isolated export randomness, and resource preflight.
 - Treat recipe and bridge formats as experimental pilot contracts. Select an
   initial envelope independently of the browser transport; evaluate JSON-RPC
   conventions without assuming they define discovery or session behavior.
@@ -83,6 +92,10 @@ existing tools; architectural feedback alone does not establish artist demand.
 - Basic integrations for all three renderer targets, with visible PNG capture
   and high-resolution rerender hooks where the example supports them. Include
   composition/display/output transforms and declared effect-scaling policies.
+- Asynchronous render completion and failure reporting, export preflight,
+  isolated PRNG/state handling, and cleanup on supported cancellation paths.
+  Declare supported temporal modes and reject unsupported seeking; a complete
+  simulation replay or checkpoint engine is not required for the first pilot.
 - Basic bridge discovery, commands, queries, events, structured errors,
   session isolation, and a minimal host used for testing the poetry example.
 - JavaScript examples, TypeScript definitions, migration instructions, and
@@ -105,7 +118,9 @@ existing tools; architectural feedback alone does not establish artist demand.
 4. URL errors are useful, typing does not trigger shortcuts, and studio seed
    controls are not accidentally available in published mode.
 5. The bridge passes its initial poetry acceptance criteria, including read-only
-   queries, duplicate-command handling, stale-session rejection, and teardown.
+   queries, asynchronous discovery, acceptance versus completion, duplicate-command
+   handling, stale-session rejection, and teardown. Distinguish query nonmutation
+   under controlled time from naturally changing answers during playback.
 6. Each example runs without a host connection or an Oriel network service.
 7. One reference work completes the connected pilot workflow: reopen a saved
    instance, inspect parameters, invoke a supported interaction through the
@@ -118,6 +133,14 @@ existing tools; architectural feedback alone does not establish artist demand.
 9. Recipe and bridge drafts are exercised across static, animated, and
    interactive examples. Record compatibility revisions and unresolved cases
    before promoting any schema or protocol subset to stable status.
+10. Exercise oversized requests, allocation errors, and context loss where
+    applicable. Report failure or an explicit alternative without silently reducing
+    quality; clean up export resources and verify that export did not mutate live
+    PRNG or canonical/session data. Record live-context recovery limitations.
+11. Identify how each dynamic example reconstructs a moment. Validate its
+    declared time/step metadata and unsupported-seek behavior. Verify that
+    export timestamps do not alter recipe identity and inconsistent dimensions
+    or derived traits are detected.
 
 This milestone does not require a full workbench, production bitVerse rollout,
 wallet support, snapshot replay, tiled export, or a platform release.
@@ -135,7 +158,9 @@ wallet support, snapshot replay, tiled export, or a platform release.
 - Bridge inspector and an initial bitVerse viewer host implementation.
 - Visible-text transcripts and controls discovered from the poetry example.
 - Defined session snapshots for at least one interactive work, including
-  compatibility validation and restore behavior.
+  compatibility validation and restore behavior. Demonstrate a supported
+  checkpoint or deterministic replay path with explicit timestep, input history,
+  position semantics, and progress/cancellation where feasible.
 
 ### Exit criteria
 
@@ -155,6 +180,8 @@ In bitVerse, the connected instance exposes its current poem, responds to a
 supported interaction, and updates its transcript through events. Switching
 works or reloading clears old subscriptions. A non-bridge artwork retains normal
 viewing. A saved supported session restores the intended interactive moment.
+Reconstruction tests distinguish simulation steps from display frames and reject
+incompatible or incomplete state references rather than reporting false success.
 
 ## M3 Platform readiness
 
@@ -219,7 +246,9 @@ long-term operation of third-party services.
 
 Candidates, each requiring its own design and acceptance cases:
 
-- Tiled high-resolution export with overlap and postprocessing constraints.
+- Tiled high-resolution export with overlap, postprocessing, and feedback-state
+  constraints. Preflight and useful failure handling already belong to M1;
+  universal tiling is not a prerequisite for the pilot.
 - Print presets, bleed/crop marks, professional color workflows, and supported
   physical-output integrations.
 - Deterministic frame sequences, optional video/audio encoders, and atomic
@@ -243,6 +272,10 @@ During implementation, test the properties that preserve artworks:
 - Known random-generator vectors and serialized recipe round trips.
 - Parameter constraints, stable identifiers, and trait/render consistency.
 - Renderer resize/export isolation, asset failures, and resource cleanup.
+- Asynchronous render results, export PRNG isolation, allocation/context-loss
+  failures, and cancellation where supported.
+- Temporal metadata, timestep/display-rate separation, derived-trait validation,
+  and recipe identity independent of incidental export provenance.
 - Coordinate mappings, effect scaling, code-diagnostic limitations, repeated
   state comparisons, and recorded rendering environments.
 - Bundle budgets and optional-dependency isolation using representative builds.
@@ -269,6 +302,9 @@ versions in released artworks rather than silently upgrading them.
 | Representative artworks and artist feedback process | Grounds the API in real adoption costs | M0 exit |
 | Supported p5.js modes, Three.js versions, and browser baseline | Defines renderer and export promises | M1 |
 | Coordinate spaces, aspect policy, and effect units | Preserves composition and interaction mapping across sizes | M1 |
+| Renderer-neutral request/result and backend target contracts | Supports offscreen output, async work, and failure handling | M1 |
+| Temporal modes, time/step semantics, and reconstruction inputs | Makes saved moments meaningful without promising universal replay | M1 declarations; M2 supported replay/snapshots |
+| Export limits, isolated PRNG policy, and context-loss recovery | Protects live state and bounds large-output promises | M1 |
 | Random algorithm, seed normalization, and keyed derivation | Fixes reproducibility semantics | M1 |
 | Recipe serialization, identity, and migration rules | Connects sharing, export, snapshots, and preservation | Draft before M1; stability review at M1 exit |
 | Parameter evaluation order and dependency/constraint policy | Prevents accidental changes and nontermination | M1 |

@@ -74,11 +74,11 @@ time can also change the output.
 | Recipe element | Purpose |
 | --- | --- |
 | Artwork identifier and code version or digest | Identify the generating work |
-| Seed and random algorithm version | Reproduce random decisions |
+| Full seed, random algorithm, and seed-derivation version | Reproduce random decisions without silently truncating platform hashes |
 | Parameter schema version and resolved values | Preserve actual inputs |
 | Asset and dependency versions or content digests | Preserve rendering inputs |
 | Composition dimensions or aspect policy | Preserve intended geometry |
-| Optional frame, simulation state, and interaction snapshot | Reconstruct a moment in a dynamic work |
+| Optional temporal mode, time/step position, and state reference | Declare how a dynamic moment can be reconstructed |
 | Recipe format version | Support validation and explicit migrations |
 
 Export dimensions, encoding, margins, and other output choices accompany the
@@ -96,6 +96,18 @@ a stable format. These cases can overlap the three renderer examples. Record
 schema revisions and migration behavior rather than freezing a format that has
 only been tested against static images.
 
+Version the recipe format independently of the SDK and renderer libraries.
+Record a source or bundle digest alongside optional Git provenance; a short
+commit label alone does not identify all built dependencies and assets. Use
+actual schema identifiers only after establishing a maintained schema location.
+
+Keep provenance such as export timestamps outside the fields that determine
+artwork identity unless the artist explicitly makes time an input. Define the
+identity-bearing fields before hashing recipes. If dimensions and aspect ratio
+are both stored, validate their agreement or derive the ratio. Stored traits
+are derived metadata and must be checked against the same resolved inputs used
+by rendering, rather than treated as an independent source of truth.
+
 A recipe provides reproducibility, not proof of token ownership or authenticity.
 Record platform identity separately and validate it through the appropriate
 platform or chain integration when that is required.
@@ -111,6 +123,35 @@ platform or chain integration when that is required.
 Dynamic external inputs must be declared. Capturing a weather value or an
 interaction log can make a particular session reproducible; fetching new values
 on every replay cannot provide the same guarantee.
+
+### Temporal reconstruction
+
+Declaring a frame number alone does not specify how to reproduce it. Each
+artwork advertises supported reconstruction modes and whether seeking is
+immediate, requires replay, or is unavailable.
+
+| Mode | Reconstruction method | Required information |
+| --- | --- | --- |
+| Static | Render resolved composition | Recipe and rendering inputs |
+| Direct time evaluation | Evaluate a specified time without replaying the full history | Time units, origin, and declared inputs |
+| Deterministic stepping | Advance from known initial state using defined steps | Initial state, timestep, step count, and ordered external inputs |
+| Checkpoint restoration | Restore compatible state, then advance if needed | State format/version, checkpoint reference, position, and subsequent inputs |
+
+Direct evaluation need not be a closed-form mathematical formula. Simulation
+timestep and display frame rate are separate: dropped display frames must not
+silently change the simulation's step history. Define the meaning of frame/step
+zero and whether a captured position is before or after its update.
+
+Record interactions, external data, and random-generator state or derivation
+when reconstruction needs them. A checkpoint reference must identify retrievable
+compatible state; its identifier alone is not the state. Long replay operations
+report progress, support cancellation where feasible, and declare resource
+limits. Unsupported seeking returns a clear result rather than an approximate
+moment presented as an exact reconstruction.
+
+Temporal modes and recipe fields are designed during M0/M1. Full replay,
+checkpoint implementations, and synchronized image/content capture follow the
+later milestones; basic bridge adoption does not require them.
 
 ## Runtime and interaction
 
@@ -296,6 +337,55 @@ estimates for expensive operations.
 Each integration advertises capabilities rather than promising universal
 export support. The exact supported p5.js and Three.js versions and global or
 instance-mode coverage are decisions for the initial design milestone.
+
+### Render request and result
+
+Separate a renderer-neutral request from the renderer-specific target:
+
+| Contract | Contents |
+| --- | --- |
+| Render request | Recipe, logical/output dimensions, aspect and transform policy, purpose, optional time/step, and cancellation request |
+| Renderer integration | Supported Canvas 2D context, p5 instance, Three.js target, or offscreen surface |
+| Render result | Completed output, recipe/session revision or temporal position, and diagnostics |
+
+Do not require `HTMLCanvasElement` for every backend. Offscreen surfaces and
+WebGL render targets have different integration needs; browser offscreen
+rendering is described by the
+[OffscreenCanvas API](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas).
+Advertise backend support rather than assuming every renderer works in a worker.
+
+A uniform scale factor is insufficient for crop, letterbox, aspect changes, or
+camera projection. Carry the actual transform policy. Allow asynchronous
+completion, progress, cancellation, and structured failures. An export purpose
+may change scheduling or hide diagnostics, but must not silently change artistic
+choices; intentional output-dependent behavior belongs in declared inputs.
+
+Resolve artistic choices into stable parameters or scene state where practical.
+An isolated export context must define whether it restarts deterministic streams,
+restores generator state, or uses keyed sampling. Passing a seeded PRNG does not
+prevent an artwork or dependency from calling `Math.random`; diagnostics remain
+advisory. Export and replay must not consume the live work's mutable PRNG.
+
+### Export preflight and failure handling
+
+Before allocation, inspect relevant texture, renderbuffer, and viewport limits
+and estimate memory for buffers, depth attachments, postprocessing, and encoding.
+WebGL exposes limits through
+[getParameter](https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/getParameter).
+Do not hardcode typical device limits or treat a dimensional check as proof that
+enough memory is available. Canvas 2D exports also need resource checks.
+
+Handle allocation failure and
+[context loss](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/webglcontextlost_event)
+explicitly. Clean up partial resources on failure or cancellation, preserve
+canonical and session data, and avoid resizing or mutating the live view during
+export. If the browser loses the live context too, report that condition and
+attempt supported recovery rather than promising uninterrupted display.
+
+Offer smaller dimensions or an explicitly supported tiled path, without silently
+reducing requested quality. Tiling must account for overlap, blur, shadows,
+screen-space effects, and feedback state. General tiling remains an advanced
+capability; early preflight must work even when tiling is unsupported.
 
 ### Print and advanced output
 

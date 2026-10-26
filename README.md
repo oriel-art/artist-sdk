@@ -8,6 +8,8 @@ and APIs described below are proposals, not implemented capabilities.
 
 ## Feature plan and roadmap
 
+- [Artist proposal](docs/artist-proposal.md): a shareable overview for artists,
+  including the proposed workflow, capabilities, and pilot participation.
 - [Feature plan](docs/feature-plan.md): artist workflows, scope, architecture,
   rendering, parameters, exploration, and platform integration.
 - [Artwork bridge](docs/artwork-bridge.md): proposed communication between an
