@@ -2,6 +2,16 @@ import { requireValue } from './errors.js';
 
 export function readInputs(url = globalThis.location?.href) {
   const parsed = new URL(url);
+  if (parsed.searchParams.has('recipe')) {
+    const encoded = parsed.searchParams.get('recipe');
+    requireValue(encoded.length <= 20000 && !parsed.searchParams.has('seed') && !parsed.searchParams.has('params'), 'Recipe URL is too large or mixes recipe and legacy inputs');
+    let recipe;
+    try { recipe = JSON.parse(encoded); } catch { requireValue(false, 'URL recipe must be valid JSON'); }
+    requireValue(recipe && typeof recipe === 'object' && !Array.isArray(recipe)
+      && typeof recipe.seed === 'string' && recipe.seed.length > 0 && recipe.seed.length <= 4096
+      && recipe.parameters && typeof recipe.parameters === 'object' && !Array.isArray(recipe.parameters), 'Invalid URL recipe');
+    return { seed: recipe.seed, values: recipe.parameters, recipe };
+  }
   const seed = parsed.searchParams.get('seed');
   requireValue(seed === null || seed.length > 0 && seed.length <= 4096, 'Invalid URL seed');
   const encoded = parsed.searchParams.get('params');
@@ -16,8 +26,14 @@ export function readInputs(url = globalThis.location?.href) {
 
 export function shareURL(url, recipe) {
   const parsed = new URL(url);
-  parsed.searchParams.set('seed', recipe.seed);
-  parsed.searchParams.set('params', JSON.stringify(recipe.parameters));
+  if (recipe.format) {
+    parsed.searchParams.delete('seed'); parsed.searchParams.delete('params');
+    parsed.searchParams.set('recipe', JSON.stringify(recipe));
+  } else {
+    parsed.searchParams.delete('recipe');
+    parsed.searchParams.set('seed', recipe.seed);
+    parsed.searchParams.set('params', JSON.stringify(recipe.parameters));
+  }
   requireValue(parsed.href.length <= 20000, 'Use a recipe file for larger inputs');
   return parsed.href;
 }

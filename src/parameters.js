@@ -1,5 +1,23 @@
-import { createRandom } from './random.js';
-import { requireValue, object, identifier } from './errors.js';
+import { createRandom, RANDOM_VERSION } from './random.js';
+import { requireValue, object, identifier, seedValue, synchronous } from './errors.js';
+
+export function generatorIdentity(resolver) {
+  if (resolver === undefined) return { kind: 'sdk', id: 'artist-sdk-parameters', version: RANDOM_VERSION };
+  requireValue(object(resolver) && typeof resolver.resolve === 'function', 'Resolver requires a resolve(seed) function');
+  identifier(resolver.id);
+  requireValue(typeof resolver.version === 'string' && resolver.version.length > 0 && resolver.version.length <= 100, 'Resolver version is required');
+  return { kind: 'artist', id: resolver.id, version: resolver.version };
+}
+
+/** Artist resolution runs in its original order, then explicit overrides apply. */
+export function resolveWith(definitions, seed, overrides = {}, resolver) {
+  seedValue(seed); generatorIdentity(resolver);
+  validateParameters(definitions, overrides, true);
+  if (!resolver) return resolveParameters(definitions, seed, overrides);
+  const generated = synchronous(resolver.resolve(seed), 'Resolver');
+  validateParameters(definitions, generated);
+  return validateParameters(definitions, { ...generated, ...overrides });
+}
 
 function validateValue(definition, value, id) {
   const { type, min, max, choices } = definition;

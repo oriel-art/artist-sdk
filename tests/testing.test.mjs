@@ -41,8 +41,9 @@ test('artist checks report reproducible failures, exceptions, and reject acciden
     throw new Error('Invalid orbit');
   } });
   assert.equal(report.passed, 1);
-  assert.deepEqual(report.failures.map(f => [f.seed, f.message]), [['b', 'Too dense for this composition'], ['c', 'Invalid orbit']]);
+  assert.deepEqual(report.failures.map(f => [f.seed, f.message]), [['b', 'Too dense for this composition']]);
   assert.deepEqual(report.failures[0].values, report.samples[1].values);
+  assert.deepEqual(report.errors.map(e => [e.seed, e.stage, e.message]), [['c', 'check', 'Invalid orbit']]);
   assert.throws(() => testParameters(definitions, { count: 1, check: async () => true }), /synchronous/);
   assert.throws(() => testParameters(definitions, { count: 1, check: () => undefined }), /must return/);
 });

@@ -1,10 +1,11 @@
 # Artwork information and parameter testing
 
-Available in **0.1.0-alpha.2**. Mihira's first artwork, **Kepler's Dream**, already
+Available in **0.1.0-alpha.3**. Mihira's first artwork, **Kepler's Dream**, already
 has an `i` action for information. The SDK now provides an optional popup that
 can take over the presentation of that information, plus parameter tools for
-the artist's development workflow. The actual Kepler's Dream source and text
-have not been integrated; the runnable example remains Contour study.
+the artist's development workflow. The team has reported an alpha.2 integration; its source is not held here.
+The runnable example remains Contour study. See the [alpha.3 guide](alpha3-guide.md)
+for custom resolvers, case replay, recipe context, sliders/search/swatches and docking.
 
 Run `npm run dev`, open `/examples/webgl/`, and use **About this work · i** or
 **Parameter lab**. The info popup uses a modal HTML dialog with contained keyboard
@@ -106,15 +107,17 @@ the current preview dimensions and time.
 
 The panel offers:
 
-- Generated numeric, boolean, and choice controls from the artwork's definitions.
+- Generated numeric sliders with precise entry, boolean, and choice controls from the artwork's definitions.
   A choice of `0`, `'0'`, or `false` retains its original type.
 - Draft edits with **Apply values**, **Reload current values**, and **Restore
   starting values**. Starting values mean those captured when the panel was created.
   Applying values keeps the original seed; save a recipe/link to retain the overrides.
-- A boundary-case selector: numeric minimum/maximum, each boolean value, and each
+- A boundary-case selector grouped by readable parameter names: numeric minimum/maximum, each boolean value, and each
   choice. Loading a case changes the fields; Apply previews it in the artwork.
 - A seed sampler with observed ranges, means, category counts, and artist-check
-  failures. A downloadable JSON report includes every sampled value and histogram.
+  diagnostics. A downloadable JSON report includes every case and histogram.
+  Case rows support Preview via an artist callback and Save recipe. Long choice
+  lists are searchable; optional swatches and panel placement are configurable.
 
 The panel calls `setParameters` before `onChange`. If rendering fails, it reports
 that the values were applied but redraw failed; it does not claim to have rolled
@@ -162,19 +165,22 @@ for (const testCase of cases) {
 Package imports are `@oriel-art/artist-sdk/info`, `.../parameter-panel`, and
 `.../testing`. All are optional submodules; core imports do not bring in their UI.
 
-`testParameters` uses the same resolution order as the artwork: explicit override,
+Without a custom resolver, `testParameters` uses the same resolution order as the artwork: explicit override,
 then default, then sampled distribution. A default is a constant; the report does
 not ignore it to manufacture variation. Generated seeds are `prefix:0`, `prefix:1`,
 and so on. Explicit seeds are used exactly, including duplicates. Limits are
 10,000 samples in the JavaScript utility, 1,000 in the panel, and 1,000 boundary cases.
 
-Reports contain definitions, overrides, PRNG version, seed/value samples, numeric
+Reports contain definitions, overrides, generator identity, seed source, seed/value samples, numeric
 min/max/mean and ten equal-width histogram bins, category counts including zero
-counts, and any failures. The panel also records artwork ID/version. Numeric
+counts, and warning/failure/error findings. The panel also records artwork ID/version. Numeric
 histograms include the maximum in the final bin; constant ranges use the first bin.
 Without a `check`, `checked` is false and `passed` is null: sampling alone is not
 presented as passing an artistic validation. Checks are synchronous and should be
-side-effect free; thrown errors are recorded as failures and async checks are rejected.
+side-effect free; thrown errors are recorded as execution errors and async checks are rejected.
+Return `{ severity: 'warning', message: 'Inspect this visually' }` for review flags.
+See the [alpha.3 report contract](alpha3-guide.md#use-the-artists-original-parameter-generation)
+for per-case statuses, resolver errors, filters, and exact recipe export.
 
 Neither helper touches a running artwork or its PRNG. A custom check could still
 mutate state through a captured variable, so do not call live artwork mutations

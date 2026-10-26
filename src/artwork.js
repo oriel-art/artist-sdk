@@ -1,17 +1,23 @@
 import { createRandom, RANDOM_VERSION } from './random.js';
-import { resolveParameters, validateParameters, validateInput } from './parameters.js';
+import { resolveWith, generatorIdentity, validateParameters, validateInput } from './parameters.js';
 import { ArtworkError, requireValue, copy, identifier, object } from './errors.js';
+import { RECIPE_VERSION, makeRecipe, contextEnvelope, readContext, validateGenerator } from './recipe.js';
 
-export const SDK_VERSION = '0.1.0-alpha.2';
-export const RECIPE_VERSION = '0.1';
+export const SDK_VERSION = '0.1.0-alpha.3';
+export { RECIPE_VERSION };
 
-export function createArtwork({ id, version, seed, parameters = {}, values = {}, mode = 'studio', traits = () => ({}), events = [] }) {
+export function createArtwork({ id, version, seed, parameters = {}, values = {}, mode = 'studio', traits = () => ({}), events = [], resolver, context, contextValues }) {
   identifier(id);
   requireValue(typeof version === 'string' && version.length > 0, 'Artwork version is required');
   requireValue(['studio', 'published'].includes(mode), 'Invalid artwork mode');
   const definitions = copy(parameters);
   const eventNames = new Set(['state.changed', ...events.map(identifier)]);
-  let resolved = resolveParameters(definitions, seed, values);
+  const generator = generatorIdentity(resolver);
+  const savedContext = contextValues === undefined ? undefined : contextEnvelope(contextValues, context);
+  validateParameters(definitions, values, true);
+  // Complete values are authoritative, including imported recipes. Never regenerate them.
+  let resolved = Object.keys(definitions).every(key => Object.hasOwn(values, key))
+    ? validateParameters(definitions, values) : resolveWith(definitions, seed, values, resolver);
   let revision = 0;
   const listeners = new Set();
   const commands = new Map();
@@ -23,8 +29,9 @@ export function createArtwork({ id, version, seed, parameters = {}, values = {},
     return copy(result);
   };
   let computedTraits = traitValues(resolved);
-  const recipe = () => ({ format: RECIPE_VERSION, artworkId: id, artworkVersion: version,
-    randomVersion: RANDOM_VERSION, seed, parameters: { ...resolved } });
+  const recipe = (options = {}) => makeRecipe({ id, version, seed, parameters: resolved, generator,
+    context: Object.hasOwn(options, 'context') ? contextEnvelope(options.context, context) : savedContext });
+  recipe(); // Validate seed even when all parameter values were supplied.
   const state = () => ({ revision, mode, parameters: { ...resolved }, traits: copy(computedTraits) });
   const emit = (type, detail = {}) => {
     identifier(type);
@@ -47,6 +54,7 @@ export function createArtwork({ id, version, seed, parameters = {}, values = {},
     random: stream => createRandom(seed, stream),
     getState: state,
     getRecipe: recipe,
+    getContext: () => savedContext ? copy(savedContext.data) : null,
     setParameters(patch) {
       requireValue(mode === 'studio', 'Parameters are locked in published mode', 'FORBIDDEN');
       validateParameters(definitions, patch, true);
@@ -61,7 +69,7 @@ export function createArtwork({ id, version, seed, parameters = {}, values = {},
     manifest() {
       const describe = map => Object.fromEntries([...map].map(([name, d]) => [name, { description: d.description, input: copy(d.input) }]));
       return { protocol: 'artist-bridge/0.1', sdkVersion: SDK_VERSION, id, version, mode,
-        parameters: copy(definitions), events: [...eventNames], commands: describe(commands), queries: describe(queries) };
+        generator: copy(generator), parameters: copy(definitions), events: [...eventNames], commands: describe(commands), queries: describe(queries) };
     },
     registerCommand: (name, definition) => register(commands, name, definition),
     registerQuery: (name, definition) => register(queries, name, definition),
@@ -80,15 +88,28 @@ export function createArtwork({ id, version, seed, parameters = {}, values = {},
     changed(detail = {}) { revision++; emit('state.changed', detail); }
   };
   api.registerQuery('state', { handler: state, description: 'Current parameters, traits, and revision' });
-  api.registerQuery('recipe', { handler: recipe, description: 'Portable canonical inputs' });
+  api.registerQuery('recipe', { handler: () => recipe(), description: 'Portable canonical inputs and saved optional context' });
   return Object.freeze(api);
 }
 
 /** Import requires an exact artist code version and the original parameter definitions. */
 export function fromRecipe(recipe, options) {
-  requireValue(object(recipe) && recipe.format === RECIPE_VERSION && recipe.randomVersion === RANDOM_VERSION,
+  requireValue(object(recipe) && ['0.1', RECIPE_VERSION].includes(recipe.format) && recipe.randomVersion === RANDOM_VERSION,
     'Unsupported recipe or random algorithm version');
   requireValue(recipe.artworkId === options.id && recipe.artworkVersion === options.version, 'Recipe belongs to a different artwork version');
   validateParameters(options.parameters ?? {}, recipe.parameters);
-  return createArtwork({ ...options, seed: recipe.seed, values: recipe.parameters });
+  const expected = generatorIdentity(options.resolver);
+  const generator = recipe.format === '0.1' ? generatorIdentity() : validateGenerator(recipe.generator);
+  requireValue(generator.kind === expected.kind && generator.id === expected.id && generator.version === expected.version, 'Recipe generator does not match the supplied resolver');
+  const context = recipe.context === undefined ? undefined : readContext(recipe.context, options.context);
+  return createArtwork({ ...options, seed: recipe.seed, values: recipe.parameters, contextValues: context?.data });
+}
+
+/** Explicit renderer restoration. Core import alone never mutates an artist's renderer. */
+export async function restoreRecipe(recipe, options) {
+  const artwork = fromRecipe(recipe, options);
+  requireValue(options.restoreContext === undefined || typeof options.restoreContext === 'function', 'restoreContext must be a function');
+  requireValue(recipe.context === undefined || options.restoreContext, 'A context recipe requires restoreContext', 'CONTEXT_RESTORE_REQUIRED');
+  if (options.restoreContext) await options.restoreContext(artwork.getContext(), { artwork });
+  return artwork;
 }

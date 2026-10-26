@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const entries = {
   'randomness': "export { createRandom } from './src/random.js'",
-  'parameters + recipes': "export { createArtwork, fromRecipe } from './src/index.js'",
+  'parameters + recipes': "export { createArtwork, fromRecipe, restoreRecipe } from './src/index.js'",
   'browser helpers': "export * from './src/browser.js'",
   'bridge, both sides': "export * from './src/bridge.js'",
   'shader runner': "export * from './src/webgl.js'",

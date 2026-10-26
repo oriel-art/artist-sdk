@@ -94,8 +94,14 @@ export function checkExportSize(gl, width, height, maxPixels = 16_777_216) {
 }
 
 /** Optional single-pass GLSL ES 1.00 runner. Owns its canvas/context. No textures or feedback. */
-export function createShaderRenderer({ canvas, artwork, fragment, uniforms = () => ({}), maxPixels = 16_777_216, onError = console.error }) {
+export function createShaderRenderer({ canvas, artwork, fragment, uniforms = () => ({}), bindings = {}, maxPixels = 16_777_216, onError = console.error }) {
   requireValue(canvas?.getContext && typeof fragment === 'string', 'A canvas and fragment shader are required');
+  requireValue(bindings && typeof bindings === 'object' && !Array.isArray(bindings)
+    && Object.keys(bindings).every(key => ['resolution', 'time', 'seed'].includes(key)), 'Invalid automatic uniform bindings');
+  const names = { resolution: 'u_resolution', time: 'u_time', seed: 'u_seed', ...bindings };
+  const active = Object.values(names).filter(name => name !== null);
+  requireValue(active.every(name => typeof name === 'string' && /^[a-zA-Z_]\w*$/.test(name))
+    && new Set(active).size === active.length, 'Uniform bindings must be distinct names or null');
   let target = createTarget(canvas, fragment);
   let disposed = false;
   let last = null;
@@ -103,10 +109,11 @@ export function createShaderRenderer({ canvas, artwork, fragment, uniforms = () 
   const alive = () => requireValue(!disposed, 'Renderer is disposed', 'DISPOSED');
   const values = snapshot => {
     const seeded = createRandom(artwork.seed, 'shader-seed');
+    const automatic = { resolution: [snapshot.width, snapshot.height], time: snapshot.time,
+      seed: [seeded.next(), seeded.next(), seeded.next(), seeded.next()] };
     return { ...uniforms({ parameters: snapshot.parameters, time: snapshot.time,
       random: name => createRandom(artwork.seed, name) }),
-      u_resolution: [snapshot.width, snapshot.height], u_time: snapshot.time,
-      u_seed: [seeded.next(), seeded.next(), seeded.next(), seeded.next()] };
+      ...Object.fromEntries(Object.entries(names).filter(([, name]) => name !== null).map(([key, name]) => [name, automatic[key]])) };
   };
   const lost = event => {
     event.preventDefault();
@@ -146,7 +153,8 @@ export function createShaderRenderer({ canvas, artwork, fragment, uniforms = () 
         surface.width = width; surface.height = height;
         output = createTarget(surface, fragment, true);
         checkExportSize(output.gl, width, height, maxPixels);
-        output.draw(width, height, { ...snapshot.uniformValues, u_resolution: [width, height] });
+        output.draw(width, height, { ...snapshot.uniformValues,
+          ...(names.resolution === null ? {} : { [names.resolution]: [width, height] }) });
         const blob = await new Promise((resolve, reject) => surface.toBlob(result => {
           if (result) resolve(result); else reject(new ArtworkError('ENCODE_FAILED', 'PNG encoding failed'));
         }, 'image/png'));

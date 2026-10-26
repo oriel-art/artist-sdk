@@ -1,8 +1,8 @@
 # Artist SDK roadmap
 
-Status: first experimental toolkit implemented, October 26, 2026. The
-`0.1.0-alpha.2` pilot is ready for an artist integration trial; M0 design
-validation and the broader milestones remain open. There is no npm registry
+Status: `0.1.0-alpha.3` feedback iteration implemented, October 26, 2026.
+Kepler's Dream integration on alpha.2 has been reported; alpha.3 artist
+revalidation, remaining M0 design validation, and broader milestones remain open. There is no npm registry
 release, production platform integration, or deployment.
 
 Read the [feature plan](feature-plan.md) for scope and the
@@ -17,7 +17,7 @@ dates. Effort estimates should follow the initial artwork trials.
 | Milestone | Outcome | Depends on |
 | --- | --- | --- |
 | M0a First WebGL toolkit | A small SDK Mihira can try; implemented experimentally | Plain JavaScript/WebGL brief |
-| M0b Artist-led design validation | One actual integration and a recorded design review | M0a and Mihira's artwork |
+| M0b Artist-led design validation | Integration reported; revisions implemented; artist revalidation outstanding | M0a and Mihira's artwork |
 | M1 Reproducible artwork and basic bridge | Harden the pilot and extend to additional renderer examples | M0 feedback |
 | M2 Collection and viewer workflows | Exploration, validation, and real bitVerse integration | M1 |
 | M3 Platform readiness | Verified runtime adapters and publication bundles | M1, with M2 validation tooling |
@@ -44,31 +44,59 @@ The [pilot guide](pilot-guide.md) is the source of truth for implemented behavio
   commands/queries, events, structured errors, duplicate handling, and teardown.
 - Optional artist-authored info popup, an `i` binding or existing-handler hook,
   and an example read-only info query. See the [info and parameter tools guide](info-and-parameters.md).
-- Studio parameter lab, repeatable seed samples with ranges/category counts,
-  custom artist checks and failure seeds, and one-variable boundary cases.
+- Studio parameter lab, repeatable SDK/artist seed samples with ranges/category
+  counts, warning/failure/error diagnostics, case replay/recipes, optional moment
+  context, and grouped one-variable boundary cases.
   Sampling is isolated from live artwork state; these are not GPU render tests.
 - Local shader studio and host viewer; core tests, real-browser integration
   tests, and bundled/minified size measurements.
 
 This is a deliberately small implementation, not completion of M1. The recipe
-contains canonical seed/parameter inputs only. The runner does not support
+contains seed/parameter inputs, generator identity, and optional validated artist
+context. Restoring a renderer is an explicit artist callback; no generic state
+replay is provided. The runner does not support
 WebGL 2, textures, multipass feedback or simulation replay. The bridge does not
 yet implement output schemas, long-operation handles, or platform-specific
 permissions. Library integrations, adapters, publishing and TypeScript declarations
 remain planned. Core utilities can be used with an artist-owned renderer.
 
-### M0b: artist trial and design review — pending
+### M0b: integration reported; artist revalidation outstanding
 
-Provide the toolkit to Mihira and observe one real integration. Record browser,
-GPU, WebGL/GLSL versions, uniforms, extensions/assets, render passes, time/state
-dependencies, target export size, code changes, and integration effort. Use
-the guide's feedback checklist. Revise the SDK based on that session before
-expanding renderer support. Do not treat a passing sample or test suite as
-evidence that Mihira's work is supported.
+The [Kepler's Dream feedback record](keplers-dream-feedback.md) captures the
+reported alpha.2 integration: WebGL 1, one fragment pass, procedural textures,
+no image textures/feedback, and direct-time evaluation. The original renderer,
+identity algorithm and Verse preview behavior were retained. Info and basic
+parameter tools were useful; testing/replay and compatibility needed revision.
+
+Reported evidence: 500 seeds with 23 geometric review flags, opening-pixel replay
+on the same GPU, 1024/2048 PNGs, and 26 passing artwork tests with Chrome/SwiftShader.
+These are integration-team observations, separate from this repository's SDK
+checks. The flags are warnings for visual review, not confirmed bad compositions
+or an edition failure rate. No artwork source, report or test suite was supplied.
+
+### Alpha.3 feedback iteration — implemented, awaiting artwork validation
+
+| Work | Implemented behavior | Kepler's Dream acceptance still to run |
+| --- | --- | --- |
+| Custom sampling | Shared versioned resolver contract, exact seeds/source labels, complete values and overrides | Match the original generator on fixed seeds; sample representative edition inputs |
+| Direct replay | Paginated/filterable cases with Preview and Save recipe; artist restoration callback | Reproduce a flagged seed plus its values in one action, export/reopen the recipe |
+| Severity | Warning, failed-check and execution-error findings; no discarded/resampled cases | Treat geometric screening as review warnings and inspect the flagged compositions |
+| Context | Recipe 0.2 optional artist schema/version/data, explicit restore hook, legacy SDK recipe import | Restore nonzero elapsed time, cadence and aspect ratio paused for comparison |
+| Studio controls | Numeric sliders/entry, searchable wrapped choices/swatches, grouped boundaries, docking/offsets | Review the actual 44 palettes and four parameters; keep playback toolbar usable |
+| Uniform ownership | Named/null automatic resolution/seed/time bindings; captured-frame export isolation | Export using original seed and texture-drift uniforms without shader renaming |
+
+The [alpha.3 guide](alpha3-guide.md) defines migration and restoration behavior.
+SDK fixtures verify these APIs; they do not complete the artwork acceptance column.
+
+Remaining: collect the minimal integration/resolver fixtures and flagged report;
+observe Mihira's actual use and measure adoption/review effort; inspect real-device
+visual output, 4096 exports, other browsers and the Verse sandbox. Record browser,
+GPU, uniforms, time/cadence units and composition aspect policy. A shared studio
+shell, new renderers, galleries and publishing are not prerequisites for this loop.
 
 ### Planned work
 
-- Begin with one existing Mihira artwork in plain JavaScript/WebGL. Request
+- Revalidate the reported Kepler's Dream integration with alpha.3. Request
   the source entry point and shaders needed for integration, plus its current
   seed/time/resolution conventions. Select p5.js, Canvas 2D, and Three.js
   examples later when testing those integrations; they do not block this trial.
@@ -124,7 +152,7 @@ existing tools; architectural feedback alone does not establish artist demand.
 ### Planned scope
 
 The M0a subset above is available. The items and exit criteria below describe
-the broader milestone and are not all implemented in `0.1.0-alpha.2`.
+the broader milestone and are not all implemented in `0.1.0-alpha.3`.
 
 - Versioned recipes, seed handling, deterministic random streams, keyed
   sampling, and uniform/weighted choices plus initial normal, truncated-normal,

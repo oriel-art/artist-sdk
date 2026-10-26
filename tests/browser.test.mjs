@@ -291,7 +291,7 @@ test('parameter lab previews edits and boundary cases, restores starting values,
   await page.locator('canvas').click();
   assert.equal(await page.evaluate(() => document.activeElement === document.querySelector('canvas')), true);
   assert.equal(await dialog.isVisible(), true);
-  await dialog.getByLabel('Boundary case', { exact: true }).selectOption({ label: 'density = 8' });
+  await dialog.getByLabel('Boundary case', { exact: true }).selectOption({ label: 'Line density = 8' });
   await dialog.getByRole('button', { name: 'Load case into fields' }).click();
   assert.equal(await page.evaluate(() => window.pilot.art.parameters.density), 30);
   await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
@@ -349,4 +349,176 @@ test('parameter tools preserve boolean and choice types, reject published mode, 
   await page.screenshot({ path: 'test-results/parameter-lab-mobile.png', fullPage: true });
   await page.evaluate(() => window.typedPanel.dispose());
   assert.equal(await page.getByRole('dialog').count(), 0);
+});
+
+test('case reports use an artist resolver, replay exact inputs and context, and export a recipe', async t => {
+  const page = await open(t);
+  await page.evaluate(async () => {
+    const { createArtwork, restoreRecipe } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    window.resolveCalls = 0;
+    const resolver = { id: 'legacy-art', version: '1', resolve(seed) { window.resolveCalls++; return { amount: seed.length }; } };
+    const options = { id: 'legacy-fixture', version: '1', seed: 'live', resolver,
+      parameters: { amount: { type: 'number', min: 0, max: 20 } },
+      context: { id: 'moment', version: '1', validate: data => data.elapsedSeconds === 12 && data.cadence === 2 && data.aspectRatio === 1.5 } };
+    window.caseArt = createArtwork(options);
+    window.casePanel = createParameterPanel({ artwork: window.caseArt, resolver, seeds: ['first', ' second '], seedSource: 'Recorded edition inputs',
+      captureContext: () => ({ elapsedSeconds: 12, cadence: 2, aspectRatio: 1.5 }),
+      check: () => ({ severity: 'warning', message: 'Review orbit overlap' }),
+      async onPreviewCase(recipe) {
+        if (window.failPreview) throw new Error('Restore unavailable');
+        const restored = await restoreRecipe(recipe, { ...options, restoreContext: data => { window.previewContext = data; } });
+        window.previewRecipe = restored.getRecipe();
+      } });
+    window.casePanel.open();
+  });
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  assert.match(await dialog.innerText(), /2 warnings; 0 failed artist checks; 0 execution errors/);
+  const before = await page.evaluate(() => window.caseArt.getRecipe());
+  const row = dialog.locator('[data-case-index="1"]');
+  await page.evaluate(() => { window.failPreview = true; });
+  await row.getByRole('button', { name: 'Preview case' }).click();
+  assert.match(await dialog.innerText(), /Could not preview case: Restore unavailable/);
+  await page.evaluate(() => { window.failPreview = false; });
+  await row.getByRole('button', { name: 'Preview case' }).click();
+  await page.waitForFunction(() => window.previewRecipe);
+  const result = await page.evaluate(() => ({ recipe: window.previewRecipe, context: window.previewContext, calls: window.resolveCalls, report: window.casePanel.getReport() }));
+  assert.equal(result.recipe.seed, ' second '); assert.equal(result.recipe.parameters.amount, 8); assert.equal(result.calls, 3);
+  assert.equal(result.context.elapsedSeconds, 12); assert.equal(result.report.source.label, 'Recorded edition inputs');
+  assert.deepEqual(await page.evaluate(() => window.caseArt.getRecipe()), before);
+  const downloadEvent = page.waitForEvent('download'); await row.getByRole('button', { name: 'Save recipe' }).click();
+  const download = await downloadEvent; const stream = await download.createReadStream(); let data = '';
+  for await (const chunk of stream) data += chunk;
+  assert.deepEqual(JSON.parse(data), result.recipe);
+  await page.screenshot({ path: 'test-results/alpha3-case-replay.png', fullPage: true });
+});
+
+test('sliders, searchable long palettes, swatches and grouped boundaries work with configurable docking', async t => {
+  const page = await open(t, '/examples/webgl/', { width: 390, height: 844 });
+  await page.evaluate(async () => {
+    const { createArtwork } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    const choices = Array.from({ length: 44 }, (_, i) => `Palette ${i}: a long descriptive constellation of colors for the quiet hours between dusk and dawn, with warm copper and deep blue`);
+    window.visualArt = createArtwork({ id: 'visual-controls', version: '1', seed: 'visual', parameters: {
+      radius: { type: 'number', min: 0, max: 1, label: 'Formation radius', default: .5, ui: { step: .01 } },
+      palette: { type: 'choice', choices, default: choices[0], label: 'Palette', ui: { swatches: choices.map(() => ['#843', '#bca', '#112233']) } }
+    } });
+    window.visualPanel = createParameterPanel({ artwork: window.visualArt, placement: { dock: 'left', top: 80, bottom: 100, edge: 12, width: 480 } });
+    window.visualPanel.open();
+  });
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('Formation radius slider').fill('0.27');
+  assert.equal(await dialog.getByLabel('Formation radius', { exact: true }).inputValue(), '0.27');
+  await dialog.getByLabel('Formation radius', { exact: true }).fill('0.271234');
+  await dialog.getByLabel('Search Palette').fill('Palette 43:');
+  const select = dialog.getByLabel('Palette', { exact: true });
+  assert.equal(await select.locator('option').count(), 2); // Matching choice plus the current selection.
+  const choice = dialog.getByRole('button', { name: /Choose Palette 43:/ });
+  await choice.focus(); await choice.press('Space');
+  assert.equal(await choice.evaluate(button => button.getRootNode().activeElement === button), true);
+  assert.equal(await choice.locator('.choice-name').evaluate(label => {
+    const range = label.ownerDocument.createRange(); range.selectNodeContents(label);
+    const lines = [...range.getClientRects()], bounds = label.getBoundingClientRect();
+    return lines.length > 1 && lines.every(line => line.left >= bounds.left - 1 && line.right <= bounds.right + 1)
+      && label.scrollWidth <= label.clientWidth;
+  }), true);
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  const result = await page.evaluate(() => window.visualArt.parameters);
+  assert.equal(result.radius, .271234); assert.match(result.palette, /^Palette 43:/);
+  assert.match(await dialog.locator('.selected-choice').innerText(), /constellation of colors/);
+  const groups = await dialog.getByLabel('Boundary case', { exact: true }).locator('optgroup').evaluateAll(nodes => nodes.map(n => n.label));
+  assert.deepEqual(groups, ['Formation radius', 'Palette']);
+  const bounds = await dialog.evaluate(d => ({ left: d.getBoundingClientRect().left, top: d.getBoundingClientRect().top, overflow: d.scrollWidth > d.clientWidth }));
+  assert.equal(bounds.left, 12); assert.equal(bounds.top, 80); assert.equal(bounds.overflow, false);
+  await dialog.evaluate(d => { d.scrollTop = 0; });
+  await page.screenshot({ path: 'test-results/alpha3-controls-mobile.png', fullPage: true });
+  await page.evaluate(() => window.visualPanel.setPlacement({ dock: 'right', top: 40, edge: 20 }));
+  assert.equal(await dialog.evaluate(d => Math.round(innerWidth - d.getBoundingClientRect().right)), 20);
+  await page.evaluate(() => window.visualPanel.setPlacement({ dock: 'inline' }));
+  assert.equal(await dialog.evaluate(d => getComputedStyle(d).position), 'relative');
+});
+
+test('case pagination retains all cases and resolver errors cannot create misleading recipes', async t => {
+  const page = await open(t);
+  await page.evaluate(async () => {
+    const { createArtwork } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    const resolver = { id: 'sometimes-invalid', version: '1', resolve(seed) {
+      if (seed === 'parameter-test:0') throw new Error('Generation failed'); return { amount: 1 };
+    } };
+    const artwork = createArtwork({ id: 'case-list', version: '1', seed: 'live', resolver, parameters: { amount: { type: 'integer', min: 0, max: 2 } } });
+    window.listPanel = createParameterPanel({ artwork, resolver }); window.listPanel.open();
+  });
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('Sample count', { exact: true }).fill('23');
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  assert.equal(await dialog.getByRole('button', { name: 'Save recipe', exact: true }).isDisabled(), true);
+  await dialog.getByLabel('Filter cases').selectOption('all');
+  assert.equal(await dialog.locator('.case-row').count(), 10);
+  await dialog.getByRole('button', { name: 'Next cases' }).click();
+  await dialog.getByRole('button', { name: 'Next cases' }).click();
+  assert.equal(await dialog.locator('.case-row').count(), 3);
+  assert.equal(await dialog.locator('.case-row').last().getAttribute('data-case-index'), '22');
+  await dialog.getByLabel('Filter cases').selectOption('warning');
+  assert.match(await dialog.innerText(), /No matching cases/);
+});
+
+test('example recipe links and report preview restore the same paused moment', async t => {
+  const page = await open(t);
+  const before = await page.evaluate(async () => {
+    await window.pilot.art.command('time.seek', { time: 12 });
+    const { shareURL } = await import('/src/browser.js');
+    const recipe = window.pilot.art.getRecipe({ context: { elapsedSeconds: 12, aspectRatio: 1 } });
+    const blob = await window.pilot.renderer.exportPNG({ width: 128, height: 128 });
+    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))];
+    return { url: shareURL(location.href, recipe), hash };
+  });
+  await page.goto(before.url); await page.waitForFunction(() => window.pilot);
+  const after = await page.evaluate(async () => {
+    const blob = await window.pilot.renderer.exportPNG({ width: 128, height: 128 });
+    return { hash: [...new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))], content: await window.pilot.art.query('content.current') };
+  });
+  assert.deepEqual(after.hash, before.hash); assert.equal(after.content.time, 12); assert.equal(after.content.playing, false);
+  await page.locator('#parameter-tools').click();
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('Exact seeds').fill('replay-case');
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  const recorded = await page.evaluate(() => window.pilot.parameterPanel.getReport());
+  await dialog.getByRole('button', { name: 'Preview case' }).click();
+  await page.waitForFunction(() => window.pilot?.art.seed === 'replay-case');
+  assert.deepEqual(await page.evaluate(() => window.pilot.art.parameters), recorded.samples[0].values);
+  assert.equal(await page.evaluate(() => window.pilot.renderer.getSnapshot().time), 12);
+});
+
+test('artist-owned seed/time uniforms and renamed resolution survive isolated exports', async t => {
+  const page = await open(t);
+  const result = await page.evaluate(async () => {
+    const { createShaderRenderer } = await import('/src/webgl.js');
+    const { createArtwork } = await import('/src/index.js');
+    const canvas = document.createElement('canvas'); let calls = 0, drift = .4;
+    const fragment = `precision highp float; uniform float u_seed; uniform float u_time; uniform vec2 outputSize;
+      void main() { gl_FragColor = vec4(u_seed, u_time, gl_FragCoord.x/outputSize.x, 1.0); }`;
+    const artwork = createArtwork({ id: 'original-uniforms', version: '1', seed: 'original' });
+    const renderer = createShaderRenderer({ canvas, artwork, fragment,
+      bindings: { seed: null, time: null, resolution: 'outputSize' },
+      uniforms: () => { calls++; return { u_seed: .2, u_time: drift }; } });
+    renderer.render({ width: 32, height: 32, time: 12 }); drift = .9;
+    const snapshot = renderer.getSnapshot();
+    async function pixel(size) {
+      const bitmap = await createImageBitmap(await renderer.exportPNG({ width: size, height: size }));
+      const surface = document.createElement('canvas'); surface.width = size; surface.height = size;
+      const ctx = surface.getContext('2d'); ctx.drawImage(bitmap, 0, 0); bitmap.close();
+      return [...ctx.getImageData(0, 0, 1, 1).data];
+    }
+    const small = await pixel(64), large = await pixel(256);
+    const unchanged = JSON.stringify(snapshot) === JSON.stringify(renderer.getSnapshot()) && canvas.width === 32;
+    renderer.dispose();
+    let invalid;
+    try { createShaderRenderer({ canvas, artwork, fragment, bindings: { seed: 'same', time: 'same' } }); } catch (e) { invalid = e.code; }
+    return { calls, small, large, unchanged, invalid };
+  });
+  assert.equal(result.calls, 1); assert.equal(result.unchanged, true);
+  assert.deepEqual(result.small.slice(0, 2), [51, 102]); assert.deepEqual(result.large.slice(0, 2), [51, 102]);
+  assert.ok(result.small[2] <= 3 && result.large[2] <= 1); assert.equal(result.invalid, 'INVALID_INPUT');
 });
