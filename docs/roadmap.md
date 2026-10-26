@@ -32,18 +32,32 @@ extensions, not a requirement for every artist or platform.
 - Select an existing Mihira artwork in p5.js, Canvas 2D, and Three.js/WebGL.
 - Identify a generative-poetry example that exposes current text and an
   interaction; it may also serve as one of the renderer examples.
+- Ensure the reference set includes static, time-dependent, and interactive
+  behavior. Record artists' current tools, recurring friction, adoption effort,
+  and priority workflows alongside the engineering assessment.
 - Walk each work through reopening a seed, named parameters, recipe saving,
   larger export, collection review, and a platform preview.
 - Agree on the recipe boundary, seed normalization, generator versioning,
   parameter evaluation, and canonical versus session state.
 - Specify renderer capabilities and supported library/browser versions.
+- Draft the composition/display/output coordinate contract, aspect policies,
+  and explicit scaling rules for strokes, texture, noise, and effects.
 - Draft bridge schemas, connection policy, command ordering, and content-query
   semantics using the poetry example.
+- Treat recipe and bridge formats as experimental pilot contracts. Select an
+  initial envelope independently of the browser transport; evaluate JSON-RPC
+  conventions without assuming they define discovery or session behavior.
+- Review canvas-sketch, Tweakpane, lil-gui, and artist-used alternatives for
+  interoperability. Identify where integration can preserve existing workflows
+  and avoid duplicate state or unnecessary new UI.
 - Obtain representative Verse and Art Blocks runtime payloads and inspect the
   selected Forever Library contract/metadata flow. Verify its generative-series
   convention separately from general V3 minting.
 - Establish initial bundle, render-time, export-size, and memory budgets using
   measurements from the selected art; do not invent universal thresholds.
+  Define randomness-only, parameters/recipes, basic-bridge, and complete-target
+  bundle measurements. Set provisional SDK size hypotheses here and validate
+  actual SDK costs during M1; the proposed 5–10 KB core is not a release gate.
 
 ### Exit criteria
 
@@ -51,6 +65,9 @@ Document the selected examples, required adoption changes, capability matrix,
 known limitations, and decisions in a design review. Confirm an artist can
 adopt individual utilities without accepting the complete lifecycle framework.
 Resolve the M1 blockers listed under open decisions below before building them.
+The review chooses initial contracts to test, not permanent public schemas.
+Include an artist-adoption assessment and an integration/reuse decision for
+existing tools; architectural feedback alone does not establish artist demand.
 
 ## M1 Reproducible artwork and basic bridge
 
@@ -64,11 +81,15 @@ Resolve the M1 blockers listed under open decisions below before building them.
 - URL helpers, explicit environment modes, asset readiness, action registry,
   keyboard controls, and basic viewport/lifecycle hooks.
 - Basic integrations for all three renderer targets, with visible PNG capture
-  and high-resolution rerender hooks where the example supports them.
+  and high-resolution rerender hooks where the example supports them. Include
+  composition/display/output transforms and declared effect-scaling policies.
 - Basic bridge discovery, commands, queries, events, structured errors,
   session isolation, and a minimal host used for testing the poetry example.
 - JavaScript examples, TypeScript definitions, migration instructions, and
   meaningful automated checks for the implemented contracts.
+- Selective runtime imports, representative bundle measurements, and initial
+  code diagnostics, state comparisons, and environment records independent
+  of a full workbench.
 
 ### Exit criteria
 
@@ -77,13 +98,26 @@ Resolve the M1 blockers listed under open decisions below before building them.
 2. Adding a sample to an independent texture stream does not change composition
    choices, and changing a parameter label does not change its stable identity.
 3. Resizing and exporting do not alter canonical inputs or advance the visible
-   artwork's random state. Rerender-capable examples preserve composition at a
-   larger target size within the agreed resource budget.
+   artwork's random state. Rerender-capable examples preserve intended geometry,
+   stroke proportions, texture scale, and framing at preview, display, and
+   larger export sizes, plus a changed viewport aspect ratio. Explicit
+   pixel-relative effects follow their declared policy within the resource budget.
 4. URL errors are useful, typing does not trigger shortcuts, and studio seed
    controls are not accidentally available in published mode.
 5. The bridge passes its initial poetry acceptance criteria, including read-only
    queries, duplicate-command handling, stale-session rejection, and teardown.
 6. Each example runs without a host connection or an Oriel network service.
+7. One reference work completes the connected pilot workflow: reopen a saved
+   instance, inspect parameters, invoke a supported interaction through the
+   bridge, query current content, and export the visible result. This does not
+   require atomic image/text capture or full session replay.
+8. Bundle reports show what is included, minified uncompressed cost, relevant
+   transfer sizes, and build versions. Importing basic utilities does not pull
+   in the workbench, publishing clients, or heavy exporters. Establish measured
+   budgets for subsequent releases and record target-specific exceptions.
+9. Recipe and bridge drafts are exercised across static, animated, and
+   interactive examples. Record compatibility revisions and unresolved cases
+   before promoting any schema or protocol subset to stable status.
 
 This milestone does not require a full workbench, production bitVerse rollout,
 wallet support, snapshot replay, tiled export, or a platform release.
@@ -96,7 +130,8 @@ wallet support, snapshot replay, tiled export, or a platform release.
   comparisons, contact sheets, and collection manifests.
 - Optional parameter controls and undo/redo in the workbench.
 - Batch rendering, distribution reports, failing-recipe capture, and agreed
-  browser/size checks.
+  browser/size checks. Extend M1 diagnostics with selected cross-device render
+  comparisons; distinguish likely code risks from observed state/image differences.
 - Bridge inspector and an initial bitVerse viewer host implementation.
 - Visible-text transcripts and controls discovered from the poetry example.
 - Defined session snapshots for at least one interactive work, including
@@ -109,6 +144,12 @@ workbench, and reopen the same outputs. Reports include the sample manifest,
 failures, environment, and observed distributions rather than promising exact
 rarity quotas. The sample size is agreed from M0 measurements and collection
 needs, not hardcoded as a universal requirement.
+
+Reports state which diagnostic levels ran, tested devices and browsers, known
+coverage gaps, and artist-approved visual tolerances. Shader precision readings
+are supporting evidence, not a certificate of cross-device determinism. Where
+an existing control library is integrated, verify that its save/load and update
+behavior cannot silently override the SDK's canonical parameter state.
 
 In bitVerse, the connected instance exposes its current poem, responds to a
 supported interaction, and updates its transcript through events. Switching
@@ -141,6 +182,10 @@ Compare canonical resolved inputs across equivalent test contexts, verify
 metadata against the artwork, and capture complete thumbnails at the intended
 moment. Do not expect unrelated native mint hashes from different platforms to
 produce the same instance automatically.
+
+Measure the final target artifact and SDK overhead against the target's actual
+packaging constraints. Verify self-contained targets without dynamic network
+imports; optional lazy loading must not become an archival runtime dependency.
 
 A locally emulated target is labeled as such until real integration is verified.
 One target's access or API gap must not block standalone packaging or other
@@ -198,6 +243,9 @@ During implementation, test the properties that preserve artworks:
 - Known random-generator vectors and serialized recipe round trips.
 - Parameter constraints, stable identifiers, and trait/render consistency.
 - Renderer resize/export isolation, asset failures, and resource cleanup.
+- Coordinate mappings, effect scaling, code-diagnostic limitations, repeated
+  state comparisons, and recorded rendering environments.
+- Bundle budgets and optional-dependency isolation using representative builds.
 - Bridge schema validation, origin/source policy, ordering, rate limits,
   disconnects, duplicate requests, and instance isolation.
 - Adapter fixtures from verified platform examples and real target checks.
@@ -220,12 +268,15 @@ versions in released artworks rather than silently upgrading them.
 | --- | --- | --- |
 | Representative artworks and artist feedback process | Grounds the API in real adoption costs | M0 exit |
 | Supported p5.js modes, Three.js versions, and browser baseline | Defines renderer and export promises | M1 |
+| Coordinate spaces, aspect policy, and effect units | Preserves composition and interaction mapping across sizes | M1 |
 | Random algorithm, seed normalization, and keyed derivation | Fixes reproducibility semantics | M1 |
-| Recipe serialization, identity, and migration rules | Connects sharing, export, snapshots, and preservation | M1 |
+| Recipe serialization, identity, and migration rules | Connects sharing, export, snapshots, and preservation | Draft before M1; stability review at M1 exit |
 | Parameter evaluation order and dependency/constraint policy | Prevents accidental changes and nontermination | M1 |
-| Bridge schemas, protocol versioning, completion, and session policy | Enables interoperable artwork and host implementations | M1 |
+| Bridge schemas, envelope, transport, completion, and session policy | Enables interoperable artwork and host implementations | Draft before M1; stability review at M1 exit |
 | Embedding and opaque-origin support | Determines safe connection bootstrap and unsupported cases | M1 |
 | Runtime bundles, module boundaries, and size budgets | Affects adoption and target compatibility | M1 baseline; refine in M3 |
+| Existing-tool integration and state ownership | Preserves artist workflows without competing parameter state | M0 review; validate chosen integrations in pilot |
+| Diagnostic coverage and rendering comparison matrix | Bounds determinism claims and identifies reproducible differences | M1 baseline; expand in M2 |
 | Workbench form and persisted data format | Determines local workflow without coupling the runtime | M2 |
 | bitVerse viewer ownership and deployment path | SDK endpoint alone does not deliver host support | M2 |
 | Platform access, fixtures, and exact project requirements | Separates emulation from verified compatibility | M3 |

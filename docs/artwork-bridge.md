@@ -34,6 +34,13 @@ can support same-page hosting later without changing the operation vocabulary.
 dedicated ports are provided by the
 [Channel Messaging API](https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API).
 
+Choose the message envelope separately from its transport.
+[JSON-RPC conventions](https://www.jsonrpc.org/specification) are a candidate
+for request/response messages carried over `postMessage` or a
+message port; JSON-RPC and browser messaging are not competing transports.
+If adopted, document how discovery, subscriptions, capabilities, completion,
+and sessions extend those conventions. No envelope format is selected yet.
+
 The lifecycle is disconnected, connecting, capability negotiation, connected,
 and closed. An iframe load is not equivalent to artwork readiness. Protocol
 connection, content readiness, and preview-capture readiness are separate signals.
@@ -111,6 +118,11 @@ range zero to one across the registered logical artwork surface. They are not
 coordinates of the containing iframe, host toolbar, or letterboxed viewport.
 Renderer integrations handle transforms and Three.js picking. Reject unknown
 surfaces, out-of-range coordinates, and unavailable targets explicitly.
+
+Use the [coordinate and scaling contract](feature-plan.md#coordinate-and-scaling-contract)
+to map between surface, composition, and display spaces. Validate named targets
+and coordinate activation across viewer sizes and device pixel densities;
+changing export resolution must not change the meaning of a bridge coordinate.
 
 Physical input, keyboard actions, and programmatic activation should call the
 same artist-defined handler. A command is an application interaction, not a
@@ -264,6 +276,13 @@ The first bridge milestone includes discovery, one validated connection,
 registered commands, read-only queries, events, session cleanup, and a minimal
 test host. Include core playback/activation examples and a generative-poetry
 extension. Production bitVerse viewer integration follows in the next milestone.
+
+Publish experimental schemas early and revise them using static, animated, and
+interactive artwork trials. Keep protocol versions explicit during the pilot;
+stabilize the core only after the artwork endpoint and a separate host client
+agree on schemas, behavior, and failure cases. Domain extensions may remain
+experimental after the core stabilizes. The first host/poetry trial must run
+without a full workbench.
 
 The poetry reference should demonstrate that:
 

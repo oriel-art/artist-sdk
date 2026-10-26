@@ -89,6 +89,13 @@ Recipes should support import, export, stable serialization, validation, and
 comparison. Compact URL encoding is useful for small recipes; larger recipes
 need files or explicitly configured storage rather than unlimited URL payloads.
 
+Draft the recipe schema early so artists and tool authors can evaluate it, but
+keep it experimental through the pilot. Exercise it with a static composition,
+a time-dependent animation, and an interactive poem or scene before declaring
+a stable format. These cases can overlap the three renderer examples. Record
+schema revisions and migration behavior rather than freezing a format that has
+only been tested against static images.
+
 A recipe provides reproducibility, not proof of token ownership or authenticity.
 Record platform identity separately and validate it through the appropriate
 platform or chain integration when that is required.
@@ -222,6 +229,39 @@ where the platform permits control over the relevant allocation process.
 
 ## Rendering and export
 
+### Coordinate and scaling contract
+
+Separate the artist's composition from the display and export dimensions:
+
+| Space | Purpose | Example |
+| --- | --- | --- |
+| Composition | Geometry, spacing, and artistic proportions | A logical 1000 by 1000 drawing surface |
+| Display | Fit the composition into a viewer | A responsive canvas with letterboxing |
+| Output | Produce the requested image pixels | A 6000 by 6000 export |
+
+Support logical design units and optional normalized coordinates without
+forcing artists to rewrite every sketch around zero-to-one values. Declare
+aspect policy and transforms explicitly; avoid accidental nonuniform stretching.
+Three.js integrations retain scene/world coordinates and define projection and
+screen-space mappings rather than forcing 3D geometry into a 2D drawing model.
+
+Distinguish composition-relative sizes from pixel-relative effects. Artists
+should declare whether stroke widths, texture grain, blur radii, noise frequency,
+and screen-space effects scale with the composition or retain a particular
+pixel size. Display CSS pixels, device pixel density, and output pixels must not
+be treated as interchangeable units.
+
+A context transform can help scale supported drawing operations, but cannot
+automatically scale every effect, texture, shader input, or postprocessing pass.
+Renderer integrations need explicit policies for those cases. Map native input
+and bridge coordinates through the same surface transforms so export resolution
+does not change interaction targets.
+
+Acceptance should compare a single recipe at a small preview, ordinary display,
+and larger export size, plus a changed viewport aspect ratio. Check geometry,
+stroke proportions, texture scale, framing, and declared pixel-relative effects
+against the artist's intent, not against assumed pixel equality.
+
 ### Export operations
 
 | Operation | Contract |
@@ -293,6 +333,23 @@ Check repeated recipes, multiple sizes, supported browsers, renderer backends,
 extreme parameters, malformed inputs, asset failures, long frames, and memory
 growth. Verify preview capture readiness, trait consistency, and adapter behavior.
 Capture failing recipes and environment details in reproducible bug reports.
+
+Use four complementary levels of determinism validation:
+
+| Level | Planned checks | Limit |
+| --- | --- | --- |
+| Code diagnostics | Flag likely unseeded randomness, undeclared time inputs, and other recognizable sources | Advisory analysis cannot find every indirect call or prove determinism |
+| State checks | Compare resolved parameters, traits, and artist-exposed geometry/state across repeated recipes | Only covers observable state and the declared inputs |
+| Rendering comparisons | Compare repeated renders and a selected browser/device matrix | Results apply to tested environments and artist-approved tolerances |
+| Environment records | Record code/assets, renderer and library versions, browser, dimensions, and available graphics precision details | A diagnostic record is not proof of equivalent output |
+
+Build these checks as reusable utilities, then expose batch results through the
+workbench. Do not require the full workbench to validate an early integration.
+Record suspected causes separately from measured differences. Shader precision
+can be inspected through the
+[WebGL precision API](https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/getShaderPrecisionFormat),
+but that information alone does not predict all GPU-dependent behavior.
+Missing graphics details should be recorded as unavailable, not invented.
 
 Treat blank-image, similarity, or low-variation findings as advisory unless the
 artist defines a hard requirement. A deliberately black output is not a bug.
@@ -373,6 +430,60 @@ Use one repository with logical modules for core data and randomness, browser
 utilities, renderer integrations, export, bridge, platform adapters, and
 development/publishing tools. Decide npm package boundaries after the initial
 artwork trials; a separate package for every module is not yet required.
+
+### Runtime footprint
+
+Provide selective entry points that allow unused code to be removed by a
+bundler. Keep workbench UI, wallet/publishing clients, ZIP tooling, and heavy
+video/export dependencies outside the core runtime dependency graph. Verify
+this using built examples rather than assuming tree shaking works.
+
+| Measurement bundle | Purpose |
+| --- | --- |
+| Randomness only | Measure seed handling and basic sampling overhead |
+| Parameters and recipes | Measure validation and serialization overhead |
+| Basic bridge | Measure discovery, commands, queries, and events overhead |
+| Complete target artwork | Measure SDK overhead after target-specific bundling |
+
+For each bundle, record included capabilities, tool versions, original source
+size, minified uncompressed bytes, and compressed transfer sizes where relevant.
+Compare complete artwork builds with and without SDK functionality to make
+overhead visible. Measure the actual target artifact or upload representation
+when it differs from the browser bundle.
+
+A 5–10 KB minified, uncompressed core is an investigation target, not a committed
+acceptance threshold. Define the included capabilities and set budgets from
+measurements and target requirements before enforcing them.
+Dynamic imports are optional: self-contained and archival targets must be able
+to bundle everything needed locally, without fetching mutable SDK code at runtime.
+
+### Interoperability with existing tools
+
+The SDK's focus is the connection between reproducible artwork state, artistic
+parameters, platform metadata, and viewer interaction. Evaluate integration
+with existing tools before adding equivalent workbench or export functionality.
+
+| Tool or category | Existing capability to consider | Proposed integration question |
+| --- | --- | --- |
+| canvas-sketch | Physical-size print workflows and renderer templates | Can its lifecycle/export workflow consume SDK recipes and actions? |
+| Tweakpane | Parameter controls and state import/export | Can controls bind to SDK parameter IDs without a competing source of truth? |
+| lil-gui | Parameter controls and save/load of values | Can existing artist panels retain their UI while using SDK validation and recipes? |
+| Leva and other UI tools | Candidate control integrations | Which artist workflows justify a maintained adapter? |
+| Platform-native SDKs | Target-specific runtime and release behavior | Which supported primitives can an adapter reuse instead of duplicating? |
+
+The relevant existing capabilities are documented by
+[canvas-sketch](https://github.com/mattdesl/canvas-sketch),
+[Tweakpane](https://tweakpane.github.io/docs/misc/), and
+[lil-gui](https://lil-gui.georgealways.com/#Saving).
+Control-state persistence is useful but does not by itself establish the SDK's
+complete artwork recipe. Define ownership, validation, update direction, and
+serialization mapping so artist tools and the SDK do not drift apart.
+
+In the pilot, assess adoption effort, bundle cost, maintenance burden, and
+licensing before choosing integrations. Do not require replacing an artist's
+existing controls to use seeded randomness, recipes, or the bridge.
+
+### Preservation
 
 Published works should bundle a pinned SDK version and run without an Oriel
 service. Source maps and build manifests belong in release archives where
