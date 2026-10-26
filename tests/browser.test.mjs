@@ -224,11 +224,129 @@ test('canvas shortcuts do not intercept typing and mobile layout stays within th
   const page = await open(t, '/examples/webgl/', { width: 390, height: 844 });
   await page.locator('#seed').fill(''); await page.locator('#seed').press('s');
   assert.equal(await page.locator('#seed').inputValue(), 's');
-  assert.equal(await page.locator('#info').evaluate(e => e.open), false);
+  const info = page.getByRole('dialog', { name: 'Contour study' });
+  assert.equal(await info.isVisible(), false);
   await page.locator('canvas').focus(); await page.keyboard.press('i');
-  assert.equal(await page.locator('#info').evaluate(e => e.open), true);
+  assert.equal(await info.isVisible(), true);
+  await page.screenshot({ path: 'test-results/info-mobile.png', fullPage: true });
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.activeElement === document.querySelector('canvas'));
   const download = page.waitForEvent('download'); await page.keyboard.press('s');
   assert.match((await download).suggestedFilename(), /1024\.png$/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: 'test-results/studio-mobile.png', fullPage: true });
+});
+
+test('info popup manages focus, toggles with i, and exposes read-only artist content through the bridge', async t => {
+  const page = await open(t);
+  const before = await page.evaluate(() => window.pilot.art.getState());
+  await page.locator('canvas').focus(); await page.keyboard.press('i');
+  const dialog = page.getByRole('dialog', { name: 'Contour study' });
+  assert.equal(await dialog.isVisible(), true);
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    assert.equal(await dialog.evaluate(d => d.contains(d.getRootNode().activeElement)), true);
+  }
+  await page.screenshot({ path: 'test-results/info-desktop.png', fullPage: true });
+  await page.keyboard.press('i');
+  await page.waitForFunction(() => document.activeElement === document.querySelector('canvas'));
+  assert.equal(await dialog.isVisible(), false);
+  assert.deepEqual(await page.evaluate(() => window.pilot.art.getState()), before);
+  await page.goto(base + '/examples/host/'); await page.waitForFunction(() => window.bridge);
+  const info = await page.evaluate(async () => (await window.bridge.query('info')).result);
+  assert.equal(info.title, 'Contour study'); assert.ok(info.controls.some(c => c.key === 'i'));
+});
+
+test('info content is text, rejects unsafe links, can update, and disposes its keyboard binding', async t => {
+  const page = await open(t);
+  const result = await page.evaluate(() => {
+    const panel = window.pilot.infoPanel;
+    panel.setInfo({ title: 'Test info', description: '<img src=x onerror="window.injected=true">', links: [{ label: 'About', url: 'https://example.org/' }] });
+    const before = panel.getInfo();
+    let error; try { panel.setInfo({ title: 'Unsafe', links: [{ label: 'x', url: 'javascript:alert(1)' }] }); } catch (e) { error = e.code; }
+    const copy = panel.getInfo(); copy.title = 'mutated';
+    panel.open();
+    return { before, current: panel.getInfo(), error, images: panel.element.shadowRoot.querySelectorAll('img').length, injected: Boolean(window.injected) };
+  });
+  assert.deepEqual(result.current, result.before); assert.equal(result.error, 'INVALID_INPUT');
+  assert.equal(result.images, 0); assert.equal(result.injected, false);
+  assert.match(await page.getByRole('dialog', { name: 'Test info' }).innerText(), /<img src=x/);
+  await page.getByRole('link', { name: 'About', exact: true }).focus();
+  await page.evaluate(() => window.pilot.infoPanel.setInfo({ title: 'Updated info' }));
+  assert.equal(await page.getByRole('dialog', { name: 'Updated info' }).evaluate(d => d.getRootNode().activeElement?.textContent), 'Close');
+  await page.evaluate(() => window.pilot.infoPanel.dispose());
+  await page.locator('canvas').focus(); await page.keyboard.press('i');
+  assert.equal(await page.getByRole('dialog').count(), 0);
+});
+
+test('parameter lab previews edits and boundary cases, restores starting values, and samples without mutation', async t => {
+  const page = await open(t);
+  const initial = await page.evaluate(() => window.pilot.art.parameters);
+  await page.locator('#parameter-tools').click();
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('Line density', { exact: true }).fill('30');
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  await page.waitForFunction(() => window.pilot.art.parameters.density === 30);
+  assert.equal(await page.evaluate(() => window.pilot.renderer.getSnapshot().parameters.density), 30);
+  await page.locator('canvas').click();
+  assert.equal(await page.evaluate(() => document.activeElement === document.querySelector('canvas')), true);
+  assert.equal(await dialog.isVisible(), true);
+  await dialog.getByLabel('Boundary case', { exact: true }).selectOption({ label: 'density = 8' });
+  await dialog.getByRole('button', { name: 'Load case into fields' }).click();
+  assert.equal(await page.evaluate(() => window.pilot.art.parameters.density), 30);
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.pilot.art.parameters.density), 8);
+  await dialog.getByRole('button', { name: 'Restore starting values' }).click();
+  assert.deepEqual(await page.evaluate(() => window.pilot.art.parameters), initial);
+  const before = await page.evaluate(() => ({ state: window.pilot.art.getState(), snapshot: window.pilot.renderer.getSnapshot() }));
+  await dialog.getByLabel('Sample count', { exact: true }).fill('200');
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  assert.match(await dialog.innerText(), /200 seeds sampled/);
+  assert.deepEqual(await page.evaluate(() => ({ state: window.pilot.art.getState(), snapshot: window.pilot.renderer.getSnapshot() })), before);
+  assert.equal(await page.evaluate(() => window.pilot.parameterPanel.getReport().samples.length), 200);
+  const download = page.waitForEvent('download'); await dialog.getByRole('button', { name: 'Save report' }).click();
+  assert.match((await download).suggestedFilename(), /parameter-report\.json$/);
+  await page.screenshot({ path: 'test-results/parameter-lab-desktop.png', fullPage: true });
+});
+
+test('parameter panel protects dirty drafts from external changes', async t => {
+  const page = await open(t);
+  await page.locator('#parameter-tools').click();
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('Line density', { exact: true }).fill('30');
+  await page.evaluate(() => window.pilot.art.setParameters({ density: 12 }));
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.pilot.art.parameters.density), 12);
+  assert.match(await dialog.innerText(), /Parameters changed outside/);
+  await dialog.getByRole('button', { name: 'Reload current values' }).click();
+  assert.equal(await dialog.getByLabel('Line density', { exact: true }).inputValue(), '12');
+});
+
+test('parameter tools preserve boolean and choice types, reject published mode, and report artist checks', async t => {
+  const page = await open(t, '/examples/webgl/', { width: 390, height: 844 });
+  const result = await page.evaluate(async () => {
+    const { createArtwork } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    const options = { id: 'typed', version: '1', seed: 'typed', parameters: {
+      enabled: { type: 'boolean', default: true }, mode: { type: 'choice', choices: [0, '0', false], default: '0' }
+    } };
+    let forbidden;
+    try { createParameterPanel({ artwork: createArtwork({ ...options, mode: 'published' }) }); } catch (e) { forbidden = e.code; }
+    window.typedArt = createArtwork(options);
+    window.typedPanel = createParameterPanel({ artwork: window.typedArt, check: () => 'Example failure' });
+    window.typedPanel.open(); return { forbidden };
+  });
+  assert.equal(result.forbidden, 'FORBIDDEN');
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('enabled', { exact: true }).uncheck();
+  await dialog.getByLabel('mode', { exact: true }).selectOption('0');
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => window.typedArt.parameters), { enabled: false, mode: 0 });
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  assert.match(await dialog.innerText(), /100 failed artist checks/);
+  assert.equal(await page.evaluate(() => window.typedPanel.getReport().failures[0].message), 'Example failure');
+  assert.equal(await dialog.evaluate(d => d.getBoundingClientRect().width <= innerWidth && d.scrollWidth <= d.clientWidth), true);
+  await page.screenshot({ path: 'test-results/parameter-lab-mobile.png', fullPage: true });
+  await page.evaluate(() => window.typedPanel.dispose());
+  assert.equal(await page.getByRole('dialog').count(), 0);
 });

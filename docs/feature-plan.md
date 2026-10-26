@@ -14,7 +14,7 @@ tools, describe its variations, reproduce particular outputs, and prepare it
 for publication. Artists should spend less time rebuilding seed handling,
 controls, exports, metadata, and platform glue for every project.
 
-Mihira is the initial artist reference. Their first project uses plain JavaScript
+Mihira is the initial artist reference. Their first project, Kepler's Dream, uses plain JavaScript
 and WebGL, with GLSL drawing directly on an HTML canvas. Start there with a small
 SDK and gather concrete adoption feedback. p5.js, Canvas 2D, and Three.js remain
 subsequent integration targets. Support must be tested with a real artwork in

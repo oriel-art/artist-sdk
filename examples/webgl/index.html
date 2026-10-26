@@ -27,8 +27,8 @@
       <div class="export"><label for="size">PNG output</label><select id="size"><option value="1024">1024 × 1024</option><option value="2048">2048 × 2048</option><option value="4096">4096 × 4096</option></select><button id="save" class="primary">Save this moment ↓</button></div>
       <div class="actions"><button id="recipe">Save recipe</button><button id="link">Copy link</button></div>
       <p id="status" role="status" aria-live="polite">Preparing artwork…</p>
-      <details id="info"><summary>About this example</summary><p>JavaScript controls the state; a fragment shader draws every pixel. Export rerenders the last displayed time and parameter values in a separate WebGL context.</p><p>Focus the canvas: <kbd>s</kbd> save · <kbd>Space</kbd> pause · <kbd>i</kbd> info. Recipes preserve canonical inputs; this pilot does not save animation time in recipes.</p></details>
-      <p class="version">EXPERIMENTAL PILOT / 0.1.0-alpha.1</p>
+      <div class="actions"><button id="info" type="button">About this work · i</button><button id="parameter-tools" type="button">Parameter lab</button></div>
+      <p class="version">EXPERIMENTAL PILOT / 0.1.0-alpha.2</p>
     </aside>
   </main>
   <script type="module" src="./main.js"></script>
