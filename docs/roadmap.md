@@ -1,7 +1,7 @@
 # Artist SDK roadmap
 
 Status: first experimental toolkit implemented, October 26, 2026. The
-`0.1.0-alpha.1` pilot is ready for an artist integration trial; M0 design
+`0.1.0-alpha.2` pilot is ready for an artist integration trial; M0 design
 validation and the broader milestones remain open. There is no npm registry
 release, production platform integration, or deployment.
 
@@ -42,6 +42,11 @@ The [pilot guide](pilot-guide.md) is the source of truth for implemented behavio
   direct-time rendering, isolated PNG export, resource preflight and context recovery.
 - Origin-checked iframe bridge with discovery, validated inputs, ordered
   commands/queries, events, structured errors, duplicate handling, and teardown.
+- Optional artist-authored info popup, an `i` binding or existing-handler hook,
+  and an example read-only info query. See the [info and parameter tools guide](info-and-parameters.md).
+- Studio parameter lab, repeatable seed samples with ranges/category counts,
+  custom artist checks and failure seeds, and one-variable boundary cases.
+  Sampling is isolated from live artwork state; these are not GPU render tests.
 - Local shader studio and host viewer; core tests, real-browser integration
   tests, and bundled/minified size measurements.
 
@@ -119,7 +124,7 @@ existing tools; architectural feedback alone does not establish artist demand.
 ### Planned scope
 
 The M0a subset above is available. The items and exit criteria below describe
-the broader milestone and are not all implemented in `0.1.0-alpha.1`.
+the broader milestone and are not all implemented in `0.1.0-alpha.2`.
 
 - Versioned recipes, seed handling, deterministic random streams, keyed
   sampling, and uniform/weighted choices plus initial normal, truncated-normal,
@@ -360,7 +365,7 @@ versions in released artworks rather than silently upgrading them.
 | Signing, storage, and publication responsibilities | Determines transaction UX and recovery behavior | M4 |
 | Supported export sizes, color baseline, and print requirements | Bounds output promises and advanced work | M1 baseline; M5 extensions |
 
-Next action: Mihira tries the M0a SDK on their first JavaScript/WebGL project.
+Next action: Mihira tries the M0a SDK on Kepler's Dream, their first JavaScript/WebGL project.
 Record the M0b integration findings and refine the pilot before declaring a
 stable API or starting broader M1 renderer work. Publishing artwork remains a
 separate, later workflow.

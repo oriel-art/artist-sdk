@@ -1,6 +1,6 @@
 {
   "name": "@oriel-art/artist-sdk",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Experimental, dependency-free utilities for JavaScript generative art",
   "type": "module",
   "sideEffects": false,
@@ -18,7 +18,10 @@
     "./parameters": "./src/parameters.js",
     "./webgl": "./src/webgl.js",
     "./bridge": "./src/bridge.js",
-    "./browser": "./src/browser.js"
+    "./browser": "./src/browser.js",
+    "./info": "./src/info.js",
+    "./testing": "./src/testing.js",
+    "./parameter-panel": "./src/parameter-panel.js"
   },
   "files": [
     "src",
@@ -31,7 +34,7 @@
   ],
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "test": "node --test tests/core.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/testing.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
     "size": "node scripts/size.mjs"
   },

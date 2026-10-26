@@ -8,7 +8,10 @@ const entries = {
   'browser helpers': "export * from './src/browser.js'",
   'bridge, both sides': "export * from './src/bridge.js'",
   'shader runner': "export * from './src/webgl.js'",
-  'complete pilot': "export * from './src/index.js'; export * from './src/webgl.js'; export * from './src/bridge.js'"
+  'core + render + bridge': "export * from './src/index.js'; export * from './src/webgl.js'; export * from './src/bridge.js'",
+  'info popup': "export * from './src/info.js'",
+  'parameter testing': "export * from './src/testing.js'",
+  'parameter panel': "export * from './src/parameter-panel.js'"
 };
 console.log(`esbuild ${version}; browser ESM, ES2022, minified, bundled with dependencies; gzip level 9`);
 for (const [name, contents] of Object.entries(entries)) {

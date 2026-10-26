@@ -16,7 +16,9 @@ control panels, and development environments should remain usable.
 
 **A first experimental SDK pilot is available in the repository.** It focuses
 on Mihira's plain JavaScript/WebGL workflow: seeded parameters, a shader example,
-PNG export, and an artwork bridge. The [pilot guide](pilot-guide.md) explains
+PNG export, and an artwork bridge. The pilot now also includes an optional info
+popup and parameter-testing tools, prompted by Kepler's Dream's `i` action.
+The [pilot guide](pilot-guide.md) explains
 exactly what works today and how to try it. Mihira's actual artwork still needs
 integration and feedback. Updated October 26, 2026, this proposal describes the
 broader ambition; the capabilities below are planned unless listed in that guide.

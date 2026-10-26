@@ -3,7 +3,7 @@
 A small JavaScript SDK for reproducible generative art, with a first pilot for
 plain JavaScript and raw WebGL/GLSL on an HTML canvas.
 
-**Experimental: 0.1.0-alpha.1.** The pilot is implemented; artist validation is
+**Experimental: 0.1.0-alpha.2.** The pilot is implemented; artist validation is
 next. APIs are not stable and Mihira's actual artwork has not yet been integrated.
 The SDK has no runtime dependencies and works as native browser ES modules.
 
@@ -16,6 +16,8 @@ No dependency installation or build is needed to run these examples.
 
 Read [Mihira's pilot guide](docs/pilot-guide.md) for integration examples,
 API behavior, limitations, and a concrete feedback session.
+The [info and parameter tools guide](docs/info-and-parameters.md) covers the
+`i` popup for Kepler's Dream and utilities for testing the artwork's parameters.
 
 Included:
 
@@ -23,6 +25,8 @@ Included:
 - URL sharing and keyboard shortcuts scoped to the artwork.
 - An optional single-pass WebGL 1 shader runner and isolated PNG rerendering.
 - An iframe bridge for discovery, commands, queries, and events.
+- An optional artwork info popup and studio parameter lab with seed reports,
+  artist checks, and boundary cases.
 - A shader studio, host viewer, unit/browser tests, and bundle-size reports.
 
 Keep your own renderer to adopt the core utilities independently. The optional

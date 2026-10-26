@@ -1,6 +1,8 @@
 import { createArtwork, readInputs, shareURL, downloadBlob, bindShortcuts } from '../../src/index.js';
 import { createShaderRenderer } from '../../src/webgl.js';
 import { exposeArtwork } from '../../src/bridge.js';
+import { createInfoPanel } from '../../src/info.js';
+import { createParameterPanel } from '../../src/parameter-panel.js';
 import { fragment } from './shader.js';
 
 const $ = id => document.getElementById(id);
@@ -45,6 +47,18 @@ try {
   art.registerQuery('content.current', { description: 'Artist-authored description of the visible composition', handler: () => ({
     text: `A ${art.parameters.palette} field of ${art.parameters.density} contour bands.`, time: renderer.getSnapshot()?.time ?? 0, playing
   }) });
+  const infoPanel = createInfoPanel({ artwork: art, shortcutTarget: canvas, info: {
+    title: 'Contour study', artist: 'Oriel / Artist SDK example',
+    description: 'A field of shifting lines, held together by a seed. A fragment shader draws every pixel; the same seed and parameters recover its composition.',
+    sections: [{ heading: 'Keeping a moment', text: 'Pause at a moment you like and save a PNG. Export rerenders the visible frame at a new resolution. Recipes preserve the seed and parameters; playback starts at zero when reopened.' }],
+    controls: [{ key: 'i', description: 'Open or close this information panel' },
+      { key: 'Space', description: 'Pause or resume while the canvas has focus' },
+      { key: 's', description: 'Save the visible moment as a PNG' }]
+  } });
+  const parameterPanel = createParameterPanel({ artwork: art, onChange: update });
+  art.registerQuery('info', { description: 'Artist-written information and controls', handler: () => infoPanel.getInfo() });
+  $('info').onclick = () => infoPanel.open();
+  $('parameter-tools').onclick = () => parameterPanel.open();
   // This example accepts its own origin only. A deployed host needs an explicit allowlist.
   const stopBridge = exposeArtwork(art, { allowedOrigins: [location.origin] });
   $('seed').value = art.seed; $('seed-label').textContent = art.seed;
@@ -65,7 +79,7 @@ try {
   $('save').addEventListener('click', () => save().catch(report));
   $('recipe').addEventListener('click', () => downloadBlob(new Blob([JSON.stringify(art.getRecipe(), null, 2)], { type: 'application/json' }), `${art.id}-recipe.json`));
   $('link').addEventListener('click', async () => { try { await navigator.clipboard.writeText(shareURL(location.href, art.getRecipe())); status('Link copied. It preserves parameters and seed; animation starts at 0s.'); } catch (error) { report(error); } });
-  const unbind = bindShortcuts(canvas, { s: save, ' ': () => playback(!playing), i: () => { $('info').open = !$('info').open; } }, report);
+  const unbind = bindShortcuts(canvas, { s: save, ' ': () => playback(!playing) }, report);
   const animate = now => {
     if (disposed) return;
     if (playing) time += Math.min((now - previous) / 1000, .1);
@@ -77,7 +91,7 @@ try {
   observer.observe(canvas);
   update(); playback(playing); status('Ready. Every variation starts with a seed.');
   frame = requestAnimationFrame(animate);
-  addEventListener('pagehide', () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); unbind(); stopBridge(); renderer.dispose(); }, { once: true });
+  addEventListener('pagehide', () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); unbind(); infoPanel.dispose(); parameterPanel.dispose(); stopBridge(); renderer.dispose(); }, { once: true });
   // Local example diagnostics, not part of the bridge or SDK global API.
-  window.pilot = { art, renderer, pause: () => playback(false) };
+  window.pilot = { art, renderer, infoPanel, parameterPanel, pause: () => playback(false) };
 } catch (error) { report(error); }

@@ -1,10 +1,10 @@
 # Mihira's JavaScript / WebGL pilot
 
-Version: **0.1.0-alpha.1**. This is an experimental SDK to try on an actual
+Version: **0.1.0-alpha.2**. This is an experimental SDK to try on an actual
 artwork. It contains working code and examples; the broader feature plan remains
 a proposal. APIs and recipe/protocol versions can change after artist feedback.
 
-The first project uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
+The first project, **Kepler's Dream**, uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
 Three.js, React, build step, network service, or runtime dependency is required.
 The SDK has not yet been validated against Mihira's source code.
 
@@ -30,6 +30,13 @@ Try this sequence:
    starts the animation at zero. Recipe import is available through `fromRecipe`.
 5. Open the bridge viewer. Inspect its manifest, pause, seek to 12 seconds,
    change density, and ask the artwork for its current content.
+6. Open **About this work · i** for artist-written information. Open **Parameter
+   lab** to edit parameters, try boundary cases, and save a seed-sampling report.
+
+See [artwork information and parameter testing](info-and-parameters.md) for
+Kepler's Dream's existing `i` handler, custom info content, generated controls,
+and JavaScript utilities for repeatable artist checks. The info popup is optional;
+the parameter lab is studio-only and stays out of core imports.
 
 The contour study is SDK sample art, not a recreation of Mihira's work. Its
 animation is a function of time; seeking does not simulate intervening frames.
@@ -292,11 +299,14 @@ Initial measurement with esbuild 0.28.2 (ES2022 ESM, gzip level 9):
 | Imported functionality | Minified bytes | Gzip bytes |
 | --- | ---: | ---: |
 | Randomness | 1,835 | 990 |
-| Parameters and recipes | 6,850 | 2,941 |
+| Parameters and recipes | 7,343 | 3,089 |
 | Browser helpers | 1,470 | 844 |
 | Bridge, artwork and host | 4,946 | 2,316 |
 | Shader runner | 7,462 | 3,458 |
-| Complete pilot | 18,635 | 7,738 |
+| Core, renderer, and bridge | 19,130 | 7,876 |
+| Optional info popup | 8,775 | 3,683 |
+| Optional parameter testing | 6,273 | 2,725 |
+| Optional parameter panel | 17,799 | 7,201 |
 
 Rows are alternative bundles with shared dependencies included, not additive costs.
 

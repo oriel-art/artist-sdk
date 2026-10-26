@@ -2,7 +2,7 @@ import { createRandom, RANDOM_VERSION } from './random.js';
 import { resolveParameters, validateParameters, validateInput } from './parameters.js';
 import { ArtworkError, requireValue, copy, identifier, object } from './errors.js';
 
-export const SDK_VERSION = '0.1.0-alpha.1';
+export const SDK_VERSION = '0.1.0-alpha.2';
 export const RECIPE_VERSION = '0.1';
 
 export function createArtwork({ id, version, seed, parameters = {}, values = {}, mode = 'studio', traits = () => ({}), events = [] }) {

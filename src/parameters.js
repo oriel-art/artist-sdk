@@ -1,6 +1,15 @@
 import { createRandom } from './random.js';
 import { requireValue, object, identifier } from './errors.js';
 
+function validateValue(definition, value, id) {
+  const { type, min, max, choices } = definition;
+  if (type === 'number' || type === 'integer') {
+    requireValue(Number.isFinite(value) && value >= min && value <= max, `Out of range: ${id}`);
+    if (type === 'integer') requireValue(Number.isSafeInteger(value), `Integer required: ${id}`);
+  } else if (type === 'boolean') requireValue(typeof value === 'boolean', `Boolean required: ${id}`);
+  else requireValue(choices.includes(value), `Invalid choice: ${id}`);
+}
+
 export function validateParameters(definitions, values, partial = false) {
   requireValue(object(definitions) && object(values), 'Parameters must be objects');
   for (const id of Object.keys(values)) requireValue(Object.hasOwn(definitions, id), `Unknown parameter: ${id}`);
@@ -10,19 +19,24 @@ export function validateParameters(definitions, values, partial = false) {
     const { type, min, max, choices } = definition;
     requireValue(['number', 'integer', 'boolean', 'choice'].includes(type), `Unsupported parameter type: ${id}`);
     if (type === 'number' || type === 'integer') {
-      requireValue(Number.isFinite(min) && Number.isFinite(max) && min <= max, `Invalid bounds: ${id}`);
-      if (type === 'integer') requireValue(Number.isSafeInteger(min) && Number.isSafeInteger(max), `Integer bounds required: ${id}`);
+      requireValue(Number.isFinite(min) && Number.isFinite(max) && min <= max && Number.isFinite(max - min), `Invalid bounds: ${id}`);
+      if (type === 'integer') requireValue(Number.isSafeInteger(min) && Number.isSafeInteger(max) && max - min < 2 ** 32, `Invalid integer bounds: ${id}`);
     }
     if (type === 'choice') requireValue(Array.isArray(choices) && choices.length > 0
       && choices.every(v => ['string', 'number', 'boolean'].includes(typeof v) && (typeof v !== 'number' || Number.isFinite(v))), `Invalid choices: ${id}`);
+    if (type === 'choice' && definition.weights !== undefined) {
+      const weights = definition.weights;
+      requireValue(Array.isArray(weights) && weights.length === choices.length
+        && weights.every(w => Number.isFinite(w) && w >= 0)
+        && Number.isFinite(weights.reduce((sum, w) => sum + w, 0))
+        && weights.reduce((sum, w) => sum + w, 0) > 0, `Invalid choice weights: ${id}`);
+    }
+    if (type === 'boolean' && definition.probability !== undefined) requireValue(Number.isFinite(definition.probability)
+      && definition.probability >= 0 && definition.probability <= 1, `Invalid probability: ${id}`);
+    if (Object.hasOwn(definition, 'default')) validateValue(definition, definition.default, id);
     if (partial && !Object.hasOwn(values, id)) continue;
     requireValue(Object.hasOwn(values, id), `Missing parameter: ${id}`);
-    const value = values[id];
-    if (type === 'number' || type === 'integer') {
-      requireValue(Number.isFinite(value) && value >= min && value <= max, `Out of range: ${id}`);
-      if (type === 'integer') requireValue(Number.isSafeInteger(value), `Integer required: ${id}`);
-    } else if (type === 'boolean') requireValue(typeof value === 'boolean', `Boolean required: ${id}`);
-    else requireValue(choices.includes(value), `Invalid choice: ${id}`);
+    validateValue(definition, values[id], id);
   }
   return Object.freeze({ ...values });
 }
