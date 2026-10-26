@@ -52,9 +52,12 @@ Replace the example branch with the appropriate name. In both workflows,
 
 1. Make one focused change. Update relevant documentation and add or update
    meaningful tests when changing executable behavior.
-2. Run the checks available in the repository and inspect your diff. This
-   repository currently has no build, test, or CI configuration; describe any
-   manual validation in your PR rather than claiming automated tests passed.
+2. Run `npm ci` and the checks appropriate to your change: `npm test` for the
+   core, `npm run test:browser` for browser/renderer/bridge behavior, and
+   `npm run size` for runtime changes. The browser suite uses installed Chrome
+   on macOS; elsewhere run `npx playwright install chromium` first. See the
+   [pilot guide](docs/pilot-guide.md) for environment details. Inspect your diff
+   and document manual visual checks or any untested browser/device limits.
 3. Commit the intended files and push your branch:
 
    ```sh
@@ -81,8 +84,7 @@ Replace the example branch with the appropriate name. In both workflows,
 ## Main branch policy and enforcement
 
 Do not push directly to `main`, force-push it, or delete it. Use PRs and resolve
-review discussions before merging. Once CI exists, all applicable checks must
-pass before merge.
+review discussions before merging. All applicable CI checks must pass before merge.
 
 GitHub branch protection is currently unavailable because this private
 repository's plan does not support it. These rules are contribution policy,

@@ -1,7 +1,9 @@
 # Artist SDK feature plan
 
-Status: proposed scope, consolidated on October 26, 2026. No SDK implementation
-is included in this plan. Milestones and delivery criteria are in the
+Status: broader proposed scope, updated October 26, 2026. A limited raw-WebGL
+pilot is now implemented; see the [pilot guide](pilot-guide.md) for its actual
+API and boundaries. This document describes the larger product, not a list of
+already delivered features. Milestones and delivery criteria are in the
 [roadmap](roadmap.md); the [artwork bridge](artwork-bridge.md) defines the
 proposed interface between an artwork and its host viewer.
 
@@ -12,9 +14,11 @@ tools, describe its variations, reproduce particular outputs, and prepare it
 for publication. Artists should spend less time rebuilding seed handling,
 controls, exports, metadata, and platform glue for every project.
 
-Mihira is the initial artist reference. p5.js, plain JavaScript with Canvas 2D,
-and Three.js/WebGL are all initial integration targets. Support should be
-tested with a real artwork in each environment, not inferred from one example.
+Mihira is the initial artist reference. Their first project uses plain JavaScript
+and WebGL, with GLSL drawing directly on an HTML canvas. Start there with a small
+SDK and gather concrete adoption feedback. p5.js, Canvas 2D, and Three.js remain
+subsequent integration targets. Support must be tested with a real artwork in
+each environment, not inferred from the raw-WebGL example.
 
 The product has five themes and a shared artwork bridge:
 

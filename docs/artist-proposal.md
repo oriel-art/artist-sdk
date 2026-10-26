@@ -2,21 +2,24 @@
 
 An open-source toolkit for creating, presenting, and preserving generative art.
 
-We are planning an open-source JavaScript SDK to help generative artists build,
+We are developing an open-source JavaScript SDK to help generative artists build,
 explore, export, and publish their work.
 
 The goal is to reduce the technical work artists repeatedly rebuild between
 projects: seed handling, parameter controls, keyboard shortcuts, image export,
 preview capture, metadata, and platform integration.
 
-Artists would continue working with **p5.js, Canvas 2D, and Three.js/WebGL**,
+Artists would continue working with **plain JavaScript/WebGL, p5.js, Canvas 2D,
+and Three.js**,
 adopting the parts of the SDK that suit their practice. Existing sketches,
 control panels, and development environments should remain usable.
 
-**The project is in the planning stage.** We are seeking artist feedback and
-representative artworks to shape the first implementation. This proposal was
-consolidated on October 26, 2026; it describes planned capabilities, not an
-available SDK.
+**A first experimental SDK pilot is available in the repository.** It focuses
+on Mihira's plain JavaScript/WebGL workflow: seeded parameters, a shader example,
+PNG export, and an artwork bridge. The [pilot guide](pilot-guide.md) explains
+exactly what works today and how to try it. Mihira's actual artwork still needs
+integration and feedback. Updated October 26, 2026, this proposal describes the
+broader ambition; the capabilities below are planned unless listed in that guide.
 
 ## The experience we want to support
 
@@ -342,7 +345,8 @@ they need without fetching changing SDK code at runtime.
 
 | Stage | Intended outcome |
 | --- | --- |
-| Design validation | Evaluate existing artworks, artist workflows, coordinate policies, and draft interfaces |
+| First WebGL toolkit | A small working SDK and examples for Mihira to try; available experimentally |
+| Design validation | Integrate one actual artwork, observe adoption, and revise coordinate policies and interfaces |
 | Initial artist pilot | Reproducible parameters, basic controls, export hooks, and an artwork bridge |
 | Collection and viewer tools | Exploration, broader validation, and initial bitVerse integration |
 | Platform readiness | Verified runtime adapters and release packages |
@@ -356,9 +360,10 @@ content → export the visible result.**
 It should also establish what happens when a request fails, an export exceeds
 available resources, or a dynamic moment cannot be reconstructed directly.
 
-The first pilot establishes temporal declarations and useful unsupported-case
-behavior. Full replay, checkpoint restoration, and synchronized image/content
-capture follow in later milestones where the artwork supports them.
+The available shader example supports direct-time rendering and exporting the
+current moment, while its recipe saves only seed and parameters. Temporal recipe
+declarations, full replay, checkpoint restoration, and synchronized image/content
+capture follow after artist trials where the artwork supports them.
 
 ## Open source and artist ownership
 

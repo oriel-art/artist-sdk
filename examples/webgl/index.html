@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Contour study · Artist SDK</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header><a href="./">ORIEL / ARTIST SDK</a><span>FIELD NOTES · 001</span><a href="../host/">Open bridge viewer ↗</a></header>
+  <main>
+    <section class="art-section" aria-label="Artwork">
+      <div class="art-heading"><span>GLSL STUDY</span><span id="dimensions">Loading</span></div>
+      <canvas id="art" width="800" height="800" tabindex="0" aria-label="Animated contour artwork. Focus and press S to save, Space to pause, or I for information."></canvas>
+      <div class="caption"><span>SEED <b id="seed-label"></b></span><span>RAW WEBGL · SINGLE PASS</span></div>
+    </section>
+    <aside>
+      <p class="eyebrow">A WORKING SDK EXAMPLE</p>
+      <h1>Contour<br><em>study.</em></h1>
+      <p class="intro">A field of shifting lines, held together by a seed. Explore a variation. Keep a moment.</p>
+      <form id="seed-form"><label for="seed">Seed</label><div class="inline"><input id="seed" name="seed" maxlength="4096" required><button type="submit">Open</button></div></form>
+      <label for="density">Line density <output id="density-label"></output></label>
+      <input id="density" type="range" min="8" max="36" step="1">
+      <label for="palette">Palette</label>
+      <select id="palette"><option value="ochre">Ochre / ink</option><option value="tide">Tide / chalk</option><option value="clay">Clay / night</option></select>
+      <div class="actions"><button id="pause">Pause</button><button id="reset">Return to 0s</button></div>
+      <div class="export"><label for="size">PNG output</label><select id="size"><option value="1024">1024 × 1024</option><option value="2048">2048 × 2048</option><option value="4096">4096 × 4096</option></select><button id="save" class="primary">Save this moment ↓</button></div>
+      <div class="actions"><button id="recipe">Save recipe</button><button id="link">Copy link</button></div>
+      <p id="status" role="status" aria-live="polite">Preparing artwork…</p>
+      <details id="info"><summary>About this example</summary><p>JavaScript controls the state; a fragment shader draws every pixel. Export rerenders the last displayed time and parameter values in a separate WebGL context.</p><p>Focus the canvas: <kbd>s</kbd> save · <kbd>Space</kbd> pause · <kbd>i</kbd> info. Recipes preserve canonical inputs; this pilot does not save animation time in recipes.</p></details>
+      <p class="version">EXPERIMENTAL PILOT / 0.1.0-alpha.1</p>
+    </aside>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
