@@ -36,9 +36,14 @@ test('static discovery and runtime bridge queries return the same data without c
     const art = frame.contentWindow.pilot.art;
     const { parseDiscovery, createDiscovery, registerDiscovery } = await import('/src/discovery.js');
     const { connectArtwork } = await import('/src/bridge.js');
+    const { validateRequest } = await import('/src/capabilities.js');
     const staticData = parseDiscovery(await (await fetch('/examples/discovery/artwork.json')).text());
     // This test opts the existing pilot into discovery with its own identity.
     staticData.artwork = { id: art.id, version: art.version };
+    for (const source of ['technical', 'artist']) {
+      staticData.capabilities[source].rendering.aspectRatios = [1512 / 803];
+      staticData.capabilities[source].rendering.aspectRatioRounding = 'nearest';
+    }
     const before = art.getRecipe();
     const unregister = registerDiscovery(art, createDiscovery(staticData));
     window.bridge.close();
@@ -47,6 +52,8 @@ test('static discovery and runtime bridge queries return the same data without c
     const discovered = (await client.query('discovery')).result;
     const metadata = (await client.query('metadata')).result;
     const capabilities = (await client.query('capabilities')).result;
+    const rounded = validateRequest(capabilities, { width: 2048, height: 1088, format: 'image/png' });
+    const distorted = validateRequest(capabilities, { width: 2048, height: 1089, format: 'image/png' });
     const provenance = (await client.query('provenance')).result;
     discovered.metadata.project.title.en = 'Host changed its copy';
     const unchanged = (await client.query('discovery')).result;
@@ -54,7 +61,7 @@ test('static discovery and runtime bridge queries return the same data without c
     let removed;
     try { await client.query('discovery'); } catch (error) { removed = error.code; }
     client.close();
-    return { staticData, unchanged, metadata, capabilities, provenance, before, after: art.getRecipe(),
+    return { staticData, unchanged, metadata, capabilities, provenance, rounded, distorted, before, after: art.getRecipe(),
       declared: ['discovery', 'metadata', 'capabilities', 'provenance'].every(name => name in manifest.queries), removed };
   });
   assert.equal(result.declared, true);
@@ -62,6 +69,8 @@ test('static discovery and runtime bridge queries return the same data without c
   assert.deepEqual(result.metadata, result.staticData.metadata);
   assert.deepEqual(result.capabilities, result.staticData.capabilities);
   assert.deepEqual(result.provenance, result.staticData.metadata.provenance);
+  assert.equal(result.rounded.status, 'requires-evaluation');
+  assert.deepEqual(result.distorted.issues.map(i => [i.source, i.code]), [['technical', 'ASPECT_RATIO'], ['artist', 'ASPECT_RATIO']]);
   assert.deepEqual(result.before, result.after);
   assert.equal(result.removed, 'UNSUPPORTED');
 });

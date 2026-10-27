@@ -6,8 +6,12 @@ export interface RenderingLimits {
   maxPixels: number;
   /** MIME types, e.g. image/png. */
   formats: string[];
-  /** width / height, relative tolerance 1e-6. Omitted means unrestricted. */
+  /** width / height. Omitted means unrestricted. */
   aspectRatios?: number[];
+  /** Default nearest: height = round(width / ratio) OR width = round(height * ratio).
+   * Strict preserves the legacy relative tolerance of 1e-6.
+   * Requires aspectRatios in this same technical or artist constraint. */
+  aspectRatioRounding?: 'nearest' | 'strict';
 }
 export interface PrintLimits {
   /** Physical dimensions in inches. */
@@ -18,7 +22,15 @@ export interface PrintLimits {
 }
 export interface InteractionSupport { pointer?: boolean; keyboard?: boolean; touch?: boolean }
 export interface AnimationSupport { supported?: boolean; seek?: boolean; pause?: boolean }
-export interface StateSupport { save?: boolean; restore?: boolean; deterministic?: boolean }
+export interface StateSupport {
+  /** Capture the inputs/context required by the artist's documented replay contract. */
+  save?: boolean;
+  /** Restore that state in the current mode; does not assert cross-device pixel identity. */
+  restore?: boolean;
+  /** Legacy boolean without a portable environment/fidelity contract. Omit when
+   * claiming only state replay; consumers must not infer pixel identity from it. */
+  deterministic?: boolean;
+}
 export interface Capabilities {
   schemaVersion: '1.0';
   technical: {

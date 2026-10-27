@@ -1,4 +1,4 @@
-# Kepler's Dream: integration feedback through alpha.4
+# Kepler's Dream: integration feedback through alpha.4 and capabilities
 
 Recorded October 26, 2026 from the integration report supplied by the project
 team, including follow-up results on alpha.3. This is reported evidence, not a
@@ -109,3 +109,33 @@ M0b status: **alpha.3 integration and improvements reported; alpha.4 implemented
 alpha.4 artist validation and remaining environment checks outstanding**. M1 and later
 milestones are not complete. A full studio shell, gallery, simulation replay,
 new renderers, platform adapters and publishing remain separate future scope.
+
+## Capabilities and metadata proposal feedback
+
+The team subsequently reported trying the capabilities/metadata proposal against
+Kepler's Dream. They independently passed 43 SDK unit tests, 26 browser tests,
+TypeScript checks, and package-install checks, plus their own artwork validation
+and real iframe bridge trials. Their source and artwork tests are not present
+in this repository; those integration results remain reported evidence.
+
+They confirmed separation of technical/artist restrictions, consistent physical
+unit conversion, rejection of mismatched output pixels and disallowed tiling,
+static/runtime discovery agreement, and preservation of recipes, parameters and
+playback state across read-only queries and cleanup. Project/edition separation,
+translations, optional licensing, and unverified references fit their workflow.
+
+| Feedback | Follow-up implementation and guidance |
+| --- | --- |
+| `1512 / 803` rejected a normally rounded `2048 × 1088` export | Default nearest-integer aspect-ratio matching for either fixed dimension; optional `strict` retains the old `1e-6` relative test; regression tests include the reported dimensions, adjacent failures, portrait exports, and independent technical/artist constraints |
+| Renderer, studio/collector, and viewer capabilities differ | Runnable mode example and guidance publish current-mode availability separately from renderer support and actual registered bridge commands |
+| Restoring seed, parameters, time, cadence and aspect is not cross-GPU pixel identity | Document explicit state replay contracts; examples advertise save/restore without the broad `deterministic` flag; consumers cannot infer pixel identity from that flag |
+| Pixel/DPI acceptance is not print approval | Saved-print job example binds runtime checks to an immutable recipe/frame/output snapshot and retains a separate `not-granted` approval status |
+
+The print constraints used in the reported trials and the new SDK example are
+test fixtures, **not approved Kepler's Dream print specifications**. The new
+example's inspection callbacks are synthetic workflow demonstrations, not
+grain/line/colour measurements of the artwork. No real-artwork pixel equivalence,
+print proof, or new artist acceptance result is claimed by these changes.
+
+See the [capabilities and metadata guide](capabilities-and-metadata.md) for the
+rounding policy, mode scope, reproducibility, and saved-frame print workflow.

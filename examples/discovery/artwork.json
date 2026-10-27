@@ -94,8 +94,7 @@
       },
       "state": {
         "save": true,
-        "restore": true,
-        "deterministic": true
+        "restore": true
       }
     },
     "artist": {
@@ -110,7 +109,7 @@
           "max": 300
         }
       },
-      "notes": "Square compositions; print at 150–300 DPI."
+      "notes": "Illustrative square-composition and 150–300 DPI fixtures only; not approved artwork print specifications."
     },
     "evaluation": "required"
   }
