@@ -26,6 +26,10 @@ summaries/actions, exact-seed guidance and optional live preview.
 
 Included:
 
+- Capabilities and metadata packages with TypeScript declarations, static JSON
+  discovery, and opt-in runtime queries. See the
+  [capabilities and metadata guide](docs/capabilities-and-metadata.md) and run
+  `node examples/discovery/main.mjs` for a working negotiation example.
 - Seeded random streams, typed parameter values, traits, and JSON recipes.
 - URL sharing and keyboard shortcuts scoped to the artwork.
 - An optional single-pass WebGL 1 shader runner and isolated PNG rerendering.
@@ -44,8 +48,9 @@ for restoring a moment through explicit artist hooks. Simulation/session replay
 is not implemented.
 Platform adapters, production bitVerse integration, and publishing are planned.
 
-For development checks: `npm ci`, `npm test`, `npm run test:browser`, and
-`npm run size`. Browser setup is described in the pilot guide.
+For development checks: `npm ci`, `npm test`, `npm run test:types`,
+`npm run test:packages`, `npm run test:browser`, and `npm run size`.
+Browser setup is described in the pilot guide.
 
 ## Feature plan and roadmap
 

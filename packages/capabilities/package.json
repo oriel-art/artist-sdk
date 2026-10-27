@@ -1,0 +1,32 @@
+{
+  "name": "@oriel-art/capabilities",
+  "version": "0.1.0-alpha.1",
+  "description": "Oriel artwork capabilities",
+  "type": "module",
+  "sideEffects": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oriel-art/artist-sdk.git",
+    "directory": "packages/capabilities"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/build-packages.mjs"
+  }
+}
