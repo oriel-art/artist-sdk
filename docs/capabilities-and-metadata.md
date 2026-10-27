@@ -12,6 +12,7 @@ They are not published by this change.
 ```sh
 npm ci
 node examples/discovery/main.mjs
+node examples/discovery/modes-and-print.mjs
 npm test
 npm run test:types
 npm run test:packages
@@ -30,6 +31,11 @@ The [complete JSON example](../examples/discovery/artwork.json) describes a
 square print with project, edition, translations, and reference metadata.
 The [runnable example](../examples/discovery/main.mjs) shows static validation,
 explicit runtime evaluation, and integration with an existing artwork.
+The [mode and saved-print example](../examples/discovery/modes-and-print.mjs)
+demonstrates current-mode discovery, a read-only bridge, state replay, and
+screening tied to one saved composition and frame. All its print limits and
+inspection outcomes are synthetic fixtures, not approved Kepler's Dream print
+specifications or real measurements of grain, line weight, or colour.
 
 ```js
 import { createCapabilities } from '@oriel-art/capabilities';
@@ -61,9 +67,49 @@ claim is inferred from the presence of an SDK renderer.
 
 `technical.rendering` requires pixel `width` and `height` ranges, `maxPixels`,
 and a nonempty array of MIME `formats` (for example `image/png`). Optional
-`aspectRatios` are width divided by height, matched within relative tolerance
-`1e-6`; omission permits any ratio within the other limits. All ranges are
+`aspectRatios` are width divided by height; omission permits any ratio within
+the other limits. All ranges are
 inclusive. Pixel dimensions and budgets must be positive safe integers.
+
+### Integer export dimensions and aspect ratios
+
+`aspectRatioRounding` configures each rendering constraint independently:
+
+| Policy | Acceptance for declared ratio `r` |
+| --- | --- |
+| `nearest` (default) | `height === Math.round(width / r)` **or** `width === Math.round(height * r)` |
+| `strict` | `Math.abs(width / height - r) <= 1e-6 * r` (the previous behavior) |
+
+The default models an export that fixes either width or height and rounds the
+derived dimension to the nearest integer. Positive half-pixel ties round up.
+It does not stretch, crop, resize, or change a request. For `r = 1512 / 803`,
+fixing width at 2048 gives a rounded height of 1088, so **2048 × 1088 passes**;
+2048 × 1087 and 2048 × 1089 fail. Portrait ratios and height-anchored exports
+use the same rule. At small sizes a half-pixel difference may be a substantial
+relative error; set an appropriate minimum size or choose `strict` when needed.
+
+```js
+const rendering = {
+  width: { min: 64, max: 8192 }, height: { min: 64, max: 8192 },
+  maxPixels: 16777216, formats: ['image/png'],
+  aspectRatios: [1512 / 803], aspectRatioRounding: 'nearest'
+};
+```
+
+Declare the policy next to `aspectRatios` under `technical.rendering` or
+`artist.rendering`. A policy without a ratio list in that same constraint is
+invalid. There is no inheritance between technical and artist constraints:
+each must pass its own policy, and a strict artist constraint can still reject
+a rounded export. Callers cannot override the policy in a request. Dimension,
+pixel-budget, format, and print constraints still apply without rounding slack.
+
+This changes the default from the initial proposal's relative `1e-6` test.
+To preserve that behavior, set `aspectRatioRounding: 'strict'` on every ratio
+constraint. Older validators that reject unknown fields need updating before
+reading a description with the new field. The schema remains `1.0` during this
+unpublished proposal; no already-published package or schema is being replaced.
+
+### Print and feature declarations
 
 Optional `technical.print` declares physical `width` and `height` ranges in
 **inches**, a `dpi` range, and optional `tiling`. Print requests may use `in`,
@@ -91,6 +137,68 @@ shape. Both technical and artist limits apply; an artist value cannot relax a
 technical bound. `artist.notes` is descriptive plain text, not an executable
 policy. Policies that require code should use `evaluation: "required"` and an
 explicit evaluator. No artist constraint is silently coerced or waived.
+
+### Renderer support, mode availability, and viewer access
+
+A renderer's complete feature set is an internal upper bound. Publish a
+capability snapshot describing what the artwork actually makes available in its
+**current mode**. Then use the existing bridge manifest's `commands` and `queries`
+to discover what an external viewer can invoke. A capability flag never registers
+an operation, grants permission, or bypasses `published` mode locks.
+
+The mode example makes these distinctions explicit:
+
+| Concern | Renderer supports | Local studio availability | Example collector availability | Viewer bridge |
+| --- | --- | --- | --- | --- |
+| Parameter editing | Artist-owned parameter inputs | `artwork.setParameters()` | Locked (`published` SDK mode) | No mutation command registered |
+| Seeking | Renderer can evaluate saved elapsed time | Advertise `animation.seek: true` for a wired local control | Advertise `seek: false` | No seek command registered |
+| Recipe capture | Seed, parameters, validated frame context | `state.save: true` | `state.save: true` | Only explicitly registered queries; recipe context must be captured by artist code |
+| Recipe restoration | Artist can restore saved inputs | `state.restore: true` | `state.restore: false` | No restore command registered |
+| Print screening | Artist-owned export/inspection path | Fixture print limits and required evaluation | Print section omitted | No export or evaluation command registered |
+
+Collector is an application concept, mapped to the SDK's existing `published`
+mode in the example. Its particular restrictions are illustrative, not assertions
+about Kepler's actual collector UI. Parameter editing is not represented by an
+interaction flag: `pointer: true` does not imply editing or remote access.
+
+Keep the complete renderer description separate from the mode-specific document.
+For a static sidecar, describe that deployed entry point's mode; if one entry
+point may start in several modes, publish only their common guarantees and query
+the actual runtime before relying on mode-dependent features. Do not advertise
+the union of studio and collector abilities as universally available. There is
+no `scope` field in the current schema; the existing bridge manifest's `mode`,
+deployment context, and the artist's integration contract establish that scope.
+
+Provider snapshots and registered queries are fixed. If the application changes
+mode, unregister the old discovery queries, create a new mode-specific provider,
+and register it. The SDK artwork's own `mode` is fixed at creation; recreate the
+artwork to change its locking behavior. If operation registrations change,
+reconnect the bridge so the viewer receives a fresh operation manifest.
+
+### State replay is not pixel identity
+
+For a Kepler-like replay claim, advertise `state: { save: true, restore: true }`
+in modes that expose those operations and document the saved inputs:
+
+- Artwork/generator version, seed, and resolved parameters.
+- Elapsed time, cadence, and composition aspect ratio in versioned recipe context.
+- Any additional artist-owned simulation state needed for that renderer.
+
+This promises capture/restoration of the documented composition and frame state.
+It does not establish equal pixels across GPUs, browsers, shaders/compiler
+versions, precision settings, output dimensions, or colour pipelines. Recipe
+import validates and restores inputs; the artist must explicitly restore/draw
+the renderer. The supplied example uses `fromRecipe()` to demonstrate input
+replay, not to claim a rendered pixel comparison.
+
+The legacy `deterministic` boolean has no standardized environment or fidelity
+descriptor. Leave it unset when the evidence is only state/composition replay;
+requests demanding it will then fail as undeclared. Existing descriptions may
+still use it under an explicit artist contract, but consumers must not infer
+cross-device or pixel-identical rendering from that flag. If pixel identity is
+needed, separately specify and test the exact renderer/environment, resolution,
+time/state, and comparison method. Neither a saved recipe nor a successful
+capability validation supplies that evidence.
 
 ## Request validation and evaluation
 
@@ -155,6 +263,67 @@ to stop. A hook that never settles keeps its slot occupied. Expensive or untrust
 hooks should run in a worker that the host terminates on cancellation; global
 application concurrency and external-service budgets remain the host's responsibility.
 Hooks should not mutate artwork state.
+
+### Print acceptance and saved-frame screening
+
+Static validation checks declared output limits, integer dimensions, and DPI
+consistency. Even a runtime `supported` result is acceptance by the supplied
+checks, **not artist approval or a guarantee of physical print quality**.
+
+In `modes-and-print.mjs`, `createSavedPrintJob()` captures the recipe (including
+frame context) and requested output together, then creates an evaluator bound to
+that snapshot. Its artist-owned `inspect({ recipe, request, signal })` callback
+receives isolated copies. Changes to live parameters, time, the caller's frame
+object, or output request cannot change the job being screened. Creating another
+composition/frame/output requires a new job and a new evaluation; a result must
+not be reused as blanket approval for another seed, frame, size, or print process.
+
+The helper accepts artworks created by `createModeExample()` and preserves the
+capability snapshot registered for that artwork. Saved frame ratios must belong
+to both the technical and artist declarations; frame input cannot create new
+permissions. This fixed-composition example rejects a different frame ratio with
+`ASPECT_RATIO`. Supporting other compositions requires an artist-defined policy
+and consistent discovery for those compositions. Output requests outside declared
+limits still produce an `unsupported` result without calling the inspector.
+
+Request and frame inputs are copied through the SDK's bounded, data-only snapshot
+utility before recipe creation or reporting, with an 8 KiB budget each. Oversized
+or unsafe input throws `LIMIT` or `INVALID_INPUT`; malformed request fields throw
+`INVALID_REQUEST` at job creation. Accessors and `toJSON` hooks are not invoked.
+
+The example also limits inspection to four active calls across all jobs sharing
+the same `inspect` function in one loaded module. Excess calls fail with `BUSY`
+without queuing. Timeout or cancellation does not free an inspection slot until
+the underlying work settles; successful and failed inspections both release it.
+Reuse one stable inspector function for each shared rendering resource. Separate
+functions, module copies, and processes need a host-level resource budget; use
+terminable workers for work that does not cooperate with cancellation.
+
+```js
+const job = createSavedPrintJob(studioArtwork, {
+  frame: { elapsedSeconds: 12.5, cadence: 1, aspectRatio: 1512 / 803 },
+  request: { width: 2048, height: 1088, format: 'image/png',
+    print: { width: 8, height: 4.25, unit: 'in', dpi: 256 } },
+  inspect: inspectSavedFrame // Artist-owned isolated rendering/inspection.
+});
+const report = await job.screen();
+// report.job contains the exact saved recipe and requested output.
+// report.screening is the negotiation result; report.printApproval stays 'not-granted'.
+```
+
+The callback contract in this example requires explicit grain, line-weight, and
+colour check results. The runnable fixture deliberately leaves colour unpassed,
+so runtime screening rejects it while dimension/DPI preflight passes. This is
+workflow plumbing, not an implementation of image-quality measurement. In a real
+integration, inspect the exact saved frame at the requested physical scale and
+use an isolated renderer/worker so live playback remains unchanged.
+
+Physical proofing and approval remain a separate artist/printer process tied to
+the same saved composition/frame, size, paper, printer, colour profile, rendering
+intent, and other relevant conditions. Record those conditions and the approval
+separately in the print job system. `printApproval` is an example report field,
+not a new SDK schema field. The fixture limits here and those reported in the
+Kepler trials are not approved artwork print specifications.
 
 ## Metadata contract (schemaVersion: "1.0")
 

@@ -5,7 +5,8 @@ import { getCapabilities } from '@oriel-art/artist-sdk/capabilities';
 import { resolveLocalizedText } from '@oriel-art/artist-sdk/metadata';
 
 const capabilities: Capabilities = { schemaVersion: '1.0', technical: { rendering: {
-  width: { min: 1, max: 4096 }, height: { min: 1, max: 4096 }, maxPixels: 4096 ** 2, formats: ['image/png']
+  width: { min: 1, max: 4096 }, height: { min: 1, max: 4096 }, maxPixels: 4096 ** 2, formats: ['image/png'],
+  aspectRatios: [1512 / 803], aspectRatioRounding: 'nearest'
 } } };
 const metadata: Metadata = { schemaVersion: '1.0', project: { id: 'demo', title: { en: 'Demo' }, creators: [{ name: 'Artist' }] } };
 const request: RenderRequest = { width: 100, height: 100, format: 'image/png' };
@@ -25,3 +26,5 @@ createMetadata({ ...metadata, provenance: [{ kind: 'identity', uri: 'did:example
 // @ts-expect-error print units are explicit
 const invalidUnit: RenderRequest = { ...request, print: { width: 1, height: 1, unit: 'pixels', dpi: 300 } };
 void missingFormat; void invalidUnit;
+// @ts-expect-error rounding is a declared policy, not an arbitrary tolerance
+capabilities.technical.rendering.aspectRatioRounding = 'anything';

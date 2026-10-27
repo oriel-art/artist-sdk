@@ -72,7 +72,7 @@ test('undeclared or false requested features fail; false requests impose no requ
     const c = caps(); delete c.technical.state;
     assert.equal(validateRequest(c, { ...request, ...feature }).status, 'unsupported');
   }
-  assert.equal(validateRequest(caps(), { ...request, interaction: { keyboard: false }, animation: { pause: true }, state: { deterministic: true } }).status, 'requires-evaluation');
+  assert.equal(validateRequest(caps(), { ...request, interaction: { keyboard: false }, animation: { pause: true }, state: { restore: true } }).status, 'requires-evaluation');
 });
 
 test('descriptions reject unknown versions, malformed ranges and unsupported fields', () => {

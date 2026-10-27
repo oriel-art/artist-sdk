@@ -2,7 +2,7 @@ import { ArtworkError, requireValue } from './errors.js';
 import { data, fields, text, positive, list, range } from './description-data.js';
 
 export const CAPABILITIES_VERSION = '1.0';
-const renderingFields = ['width', 'height', 'maxPixels', 'aspectRatios', 'formats'];
+const renderingFields = ['width', 'height', 'maxPixels', 'aspectRatios', 'aspectRatioRounding', 'formats'];
 const printFields = ['width', 'height', 'dpi', 'tiling'];
 function limits(value, kind, required = false) {
   fields(value, kind === 'rendering' ? renderingFields : printFields, kind);
@@ -11,6 +11,10 @@ function limits(value, kind, required = false) {
   }
   if (value.maxPixels !== undefined) positive(value.maxPixels, 'maxPixels', true);
   if (value.aspectRatios !== undefined) list(value.aspectRatios, 'aspectRatios', v => positive(v, 'aspect ratio'));
+  if (value.aspectRatioRounding !== undefined) {
+    requireValue(['nearest', 'strict'].includes(value.aspectRatioRounding), 'Invalid aspect-ratio rounding policy');
+    requireValue(value.aspectRatios !== undefined, 'Aspect-ratio rounding requires aspectRatios in the same constraint');
+  }
   if (value.formats !== undefined) list(value.formats, 'formats', v => {
     text(v, 'format', 100); requireValue(/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(v), 'Formats must be MIME types');
   });
@@ -68,6 +72,13 @@ function prepareRequest(caps, request) {
   return { request: r, result: checkRequest(caps, r) };
 }
 
+function matchesAspectRatio(width, height, ratio, rounding = 'nearest') {
+  if (rounding === 'strict') return Math.abs(width / height - ratio) <= 1e-6 * ratio;
+  // Either dimension may be the artist's fixed export dimension. The other must
+  // be exactly its nearest integer, with positive half-pixel ties rounded up.
+  return height === Math.round(width / ratio) || width === Math.round(height * ratio);
+}
+
 // Only called with private, validated snapshots. Never expose this fast path.
 function checkRequest(caps, r) {
   const issues = [];
@@ -83,7 +94,7 @@ function checkRequest(caps, r) {
       checkRange(render.width, r.width, source, 'width'); checkRange(render.height, r.height, source, 'height');
       if (render.maxPixels !== undefined && r.width > render.maxPixels / r.height) issue(source, 'PIXEL_LIMIT', 'width', 'Total pixel limit exceeded');
       if (render.formats && !render.formats.includes(r.format)) issue(source, 'FORMAT', 'format', 'Export format is not allowed');
-      if (render.aspectRatios && !render.aspectRatios.some(ratio => Math.abs(r.width / r.height - ratio) <= 1e-6 * ratio)) issue(source, 'ASPECT_RATIO', 'width', 'Aspect ratio is not allowed');
+      if (render.aspectRatios && !render.aspectRatios.some(ratio => matchesAspectRatio(r.width, r.height, ratio, render.aspectRatioRounding))) issue(source, 'ASPECT_RATIO', 'width', 'Aspect ratio is not allowed');
     }
     if (r.print && limits.print) {
       const scale = { in: 1, cm: 2.54, mm: 25.4 }[r.print.unit];
