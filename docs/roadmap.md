@@ -1,8 +1,8 @@
 # Artist SDK roadmap
 
-Status: `0.1.0-alpha.3` feedback iteration implemented, October 26, 2026.
-Kepler's Dream integration on alpha.2 has been reported; alpha.3 artist
-revalidation, remaining M0 design validation, and broader milestones remain open. There is no npm registry
+Status: `0.1.0-alpha.4` feedback iteration implemented, October 26, 2026.
+Kepler's Dream integration and improvements on alpha.3 have been reported;
+alpha.4 artist validation, remaining M0 design validation, and broader milestones remain open. There is no npm registry
 release, production platform integration, or deployment.
 
 Read the [feature plan](feature-plan.md) for scope and the
@@ -17,7 +17,7 @@ dates. Effort estimates should follow the initial artwork trials.
 | Milestone | Outcome | Depends on |
 | --- | --- | --- |
 | M0a First WebGL toolkit | A small SDK Mihira can try; implemented experimentally | Plain JavaScript/WebGL brief |
-| M0b Artist-led design validation | Integration reported; revisions implemented; artist revalidation outstanding | M0a and Mihira's artwork |
+| M0b Artist-led design validation | Alpha.3 improvements reported; alpha.4 implemented; artist validation outstanding | M0a and Mihira's artwork |
 | M1 Reproducible artwork and basic bridge | Harden the pilot and extend to additional renderer examples | M0 feedback |
 | M2 Collection and viewer workflows | Exploration, validation, and real bitVerse integration | M1 |
 | M3 Platform readiness | Verified runtime adapters and publication bundles | M1, with M2 validation tooling |
@@ -47,6 +47,8 @@ The [pilot guide](pilot-guide.md) is the source of truth for implemented behavio
 - Studio parameter lab, repeatable SDK/artist seed samples with ranges/category
   counts, warning/failure/error diagnostics, case replay/recipes, optional moment
   context, and grouped one-variable boundary cases.
+  Alpha.4 adds sortable count tables, readable case summaries, persistent totals
+  and actions, line-specific seed errors and optional serialized live preview.
   Sampling is isolated from live artwork state; these are not GPU render tests.
 - Local shader studio and host viewer; core tests, real-browser integration
   tests, and bundled/minified size measurements.
@@ -74,19 +76,45 @@ These are integration-team observations, separate from this repository's SDK
 checks. The flags are warnings for visual review, not confirmed bad compositions
 or an edition failure rate. No artwork source, report or test suite was supplied.
 
-### Alpha.3 feedback iteration — implemented, awaiting artwork validation
+### Alpha.3 feedback iteration — integration improvements reported
 
-| Work | Implemented behavior | Kepler's Dream acceptance still to run |
+| Work | Implemented behavior | Reported Kepler's Dream outcome |
 | --- | --- | --- |
-| Custom sampling | Shared versioned resolver contract, exact seeds/source labels, complete values and overrides | Match the original generator on fixed seeds; sample representative edition inputs |
-| Direct replay | Paginated/filterable cases with Preview and Save recipe; artist restoration callback | Reproduce a flagged seed plus its values in one action, export/reopen the recipe |
-| Severity | Warning, failed-check and execution-error findings; no discarded/resampled cases | Treat geometric screening as review warnings and inspect the flagged compositions |
-| Context | Recipe 0.2 optional artist schema/version/data, explicit restore hook, legacy SDK recipe import | Restore nonzero elapsed time, cadence and aspect ratio paused for comparison |
-| Studio controls | Numeric sliders/entry, searchable wrapped choices/swatches, grouped boundaries, docking/offsets | Review the actual 44 palettes and four parameters; keep playback toolbar usable |
-| Uniform ownership | Named/null automatic resolution/seed/time bindings; captured-frame export isolation | Export using original seed and texture-drift uniforms without shader renaming |
+| Custom sampling | Shared versioned resolver contract, exact seeds/source labels, complete values and overrides | Original seeded generation retained; exact-seed testing practical |
+| Direct replay | Paginated/filterable cases with Preview and Save recipe; artist restoration callback | Recorded seed/parameters reopen paused; manual replay steps reduced |
+| Severity | Warning, failed-check and execution-error findings; no discarded/resampled cases | Distinctions clearer; fresh 100-seed run had zero findings |
+| Context | Recipe 0.2 optional artist schema/version/data and explicit restore hook | Elapsed time, cadence and aspect ratio preserved for comparison |
+| Studio controls | Sliders/entry, search/swatches, grouped boundaries, docking | 44-palette editing improved; panel separated from the artist toolbar |
+| Uniform ownership | Named/null automatic bindings; captured-frame export isolation | Original uniforms/shaders retained; fewer workarounds |
 
 The [alpha.3 guide](alpha3-guide.md) defines migration and restoration behavior.
-SDK fixtures verify these APIs; they do not complete the artwork acceptance column.
+SDK fixtures and the reported artwork results are separate evidence. The latest
+100-seed browser trial had no warnings, failed checks or execution errors; earlier
+alpha.3 checks reportedly passed 500 seeds, recipes and 1024/2048 exports. No
+source/report/test suite was supplied. These checks do not prove aesthetic quality
+or cross-device equivalence. Separate-tab preview and playback UI remain artist
+integration choices.
+
+### Alpha.4 feedback iteration — implemented, awaiting artwork validation
+
+| Work | Implemented behavior | Next Kepler's Dream acceptance |
+| --- | --- | --- |
+| Scannable reports | Sortable category count/share tables, optional zero visibility, labeled case values/swatches, optional raw JSON | Review the real palette set; sorting/filtering must leave report and recipe data intact |
+| Persistent evidence | Fixed summary for totals, generator/override policy and captured context; separate action/error messages | Preview/download/error paths retain the report; current playback cannot change recorded context |
+| Exact-seed guidance | Line-specific blank/oversize errors and explicit empty-line removal | Paste trailing newline; preserve all nonempty strings, whitespace and duplicates |
+| Editing flow | Persistent Apply/Reset/Reload and accurate draft/render/conflict status | Less scrolling, clear unapplied state, predictable reset/reload |
+| Optional live preview | Off by default; trailing debounce; one awaited renderer callback at a time | Fast edits coalesce; slow/erroring redraws preserve drafts and remain recoverable |
+
+The [alpha.4 guide](alpha4-guide.md) documents the options and acceptance session.
+Recipe/report formats remain 0.2; bridge remains 0.1. SDK validation: 25 unit
+tests, 25 Chrome/SwiftShader browser tests and inspected desktop/mobile layouts.
+
+**Next iteration: thumbnails, explicitly deferred from alpha.4.** Validate an
+artist-owned isolated rendering/capture contract for the recorded seed, values
+and comparison context. Specify bounded image size, concurrency/memory limits,
+cancellation, cleanup and per-case failures before implementing a thumbnail
+browser. Do not imply the SDK sampler can render arbitrary artwork, advance its
+live state, or infer composition quality. Broader gallery/visual-diff work remains M2.
 
 Remaining: collect the minimal integration/resolver fixtures and flagged report;
 observe Mihira's actual use and measure adoption/review effort; inspect real-device
@@ -96,7 +124,7 @@ shell, new renderers, galleries and publishing are not prerequisites for this lo
 
 ### Planned work
 
-- Revalidate the reported Kepler's Dream integration with alpha.3. Request
+- Validate the revised Kepler's Dream workflow with alpha.4. Request
   the source entry point and shaders needed for integration, plus its current
   seed/time/resolution conventions. Select p5.js, Canvas 2D, and Three.js
   examples later when testing those integrations; they do not block this trial.
@@ -152,7 +180,7 @@ existing tools; architectural feedback alone does not establish artist demand.
 ### Planned scope
 
 The M0a subset above is available. The items and exit criteria below describe
-the broader milestone and are not all implemented in `0.1.0-alpha.3`.
+the broader milestone and are not all implemented in `0.1.0-alpha.4`.
 
 - Versioned recipes, seed handling, deterministic random streams, keyed
   sampling, and uniform/weighted choices plus initial normal, truncated-normal,
@@ -393,7 +421,8 @@ versions in released artworks rather than silently upgrading them.
 | Signing, storage, and publication responsibilities | Determines transaction UX and recovery behavior | M4 |
 | Supported export sizes, color baseline, and print requirements | Bounds output promises and advanced work | M1 baseline; M5 extensions |
 
-Next action: Mihira tries the M0a SDK on Kepler's Dream, their first JavaScript/WebGL project.
-Record the M0b integration findings and refine the pilot before declaring a
+Next action: Mihira tries alpha.4's report and editing workflow in Kepler's Dream.
+Record the M0b acceptance findings and review effort, then scope thumbnails for
+the next iteration. Refine the pilot before declaring a
 stable API or starting broader M1 renderer work. Publishing artwork remains a
 separate, later workflow.

@@ -431,7 +431,7 @@ test('sliders, searchable long palettes, swatches and grouped boundaries work wi
   assert.deepEqual(groups, ['Formation radius', 'Palette']);
   const bounds = await dialog.evaluate(d => ({ left: d.getBoundingClientRect().left, top: d.getBoundingClientRect().top, overflow: d.scrollWidth > d.clientWidth }));
   assert.equal(bounds.left, 12); assert.equal(bounds.top, 80); assert.equal(bounds.overflow, false);
-  await dialog.evaluate(d => { d.scrollTop = 0; });
+  await dialog.evaluate(d => { d.querySelector('.body').scrollTop = 0; });
   await page.screenshot({ path: 'test-results/alpha3-controls-mobile.png', fullPage: true });
   await page.evaluate(() => window.visualPanel.setPlacement({ dock: 'right', top: 40, edge: 20 }));
   assert.equal(await dialog.evaluate(d => Math.round(innerWidth - d.getBoundingClientRect().right)), 20);
@@ -521,4 +521,226 @@ test('artist-owned seed/time uniforms and renamed resolution survive isolated ex
   assert.equal(result.calls, 1); assert.equal(result.unchanged, true);
   assert.deepEqual(result.small.slice(0, 2), [51, 102]); assert.deepEqual(result.large.slice(0, 2), [51, 102]);
   assert.ok(result.small[2] <= 3 && result.large[2] <= 1); assert.equal(result.invalid, 'INVALID_INPUT');
+});
+
+test('report tables and labeled cases preserve recorded totals, inputs and comparison context', async t => {
+  const page = await open(t);
+  await page.evaluate(async () => {
+    const { createArtwork } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    const resolver = { id: 'original-generator', version: '2', resolve(seed) {
+      if (seed === 'error') throw new Error('Cannot resolve');
+      return { palette: seed === 'third' ? 'b' : 'a', radius: 2 };
+    } };
+    window.comparisonTime = 12.5;
+    window.reportArt = createArtwork({ id: 'report-fixture', version: '1', seed: 'live', resolver,
+      parameters: { palette: { type: 'choice', label: 'Palette', choices: ['a', 'b', 'unused'], ui: {
+        choiceLabels: ['Amber evening', 'Blue hour', 'Unseen palette'], swatches: [['#da9'], ['#123'], ['#aaa']]
+      } }, radius: { type: 'number', label: 'Formation radius', min: 0, max: 10 } },
+      context: { id: 'moment', version: '1', validate: () => true } });
+    window.reportPanel = createParameterPanel({ artwork: window.reportArt, resolver,
+      seeds: ['first', 'second', 'third', 'error'], seedSource: 'Artist trial',
+      check: (_, { seed }) => seed === 'first' ? { severity: 'warning', message: 'Review this orbit' } : true,
+      contextLabels: { elapsedSeconds: 'Time (seconds)', cadence: 'Formation cadence', aspectRatio: 'Composition aspect' },
+      captureContext: () => ({ elapsedSeconds: window.comparisonTime, cadence: 2, aspectRatio: 1.5 }),
+      onPreviewCase: recipe => { if (window.previewFails) throw new Error('Preview unavailable'); window.openedRecipe = recipe; }
+    });
+    window.reportPanel.open();
+  });
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByLabel('Palette', { exact: true }).selectOption('2');
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  const summary = dialog.getByRole('complementary', { name: 'Report summary' });
+  const summaryText = await summary.innerText();
+  assert.match(summaryText, /4 seeds sampled · 3 resolved/);
+  assert.match(summaryText, /1 warnings; 0 failed artist checks; 1 execution errors/);
+  assert.match(summaryText, /original-generator \/ 2. Editor overrides excluded/);
+  assert.match(summaryText, /Time \(seconds\): 12.5 · Formation cadence: 2 · Composition aspect: 1.5/);
+  const originalReport = await page.evaluate(() => window.reportPanel.getReport());
+  const table = dialog.getByRole('table', { name: 'Palette counts' });
+  assert.equal(await table.locator('tbody tr').count(), 2);
+  assert.deepEqual(await table.locator('.count-share').allTextContents(), ['66.7%', '33.3%']);
+  await dialog.getByLabel('Hide zero counts for Palette').uncheck();
+  assert.equal(await table.locator('tbody tr').count(), 3);
+  await dialog.getByRole('button', { name: 'Sort Palette by count' }).click();
+  assert.deepEqual(await table.locator('.count-value').allTextContents(), ['0', '1', '2']);
+  await dialog.getByRole('button', { name: 'Sort Palette by value' }).click();
+  assert.match(await table.locator('tbody tr').first().innerText(), /Amber evening/);
+  await dialog.getByRole('button', { name: 'Sort Palette by value' }).click();
+  assert.match(await table.locator('tbody tr').first().innerText(), /Unseen palette/);
+  assert.equal(await table.locator('.color-chip').count(), 3);
+  const row = dialog.locator('.case-row').first();
+  assert.match(await row.locator('.case-values').innerText(), /Palette\s+Amber evening\s+Formation radius\s+2/);
+  assert.equal(await row.locator('pre').isVisible(), false);
+  await row.getByText('Raw JSON', { exact: true }).click();
+  assert.equal(await row.locator('pre').isVisible(), true);
+  await page.evaluate(() => { window.comparisonTime = 99; });
+  await row.getByRole('button', { name: 'Preview case' }).click();
+  assert.match(await dialog.getByLabel('Report action status').innerText(), /Case 1 opened/);
+  assert.equal((await page.evaluate(() => window.openedRecipe)).context.data.elapsedSeconds, 12.5);
+  assert.equal(await summary.innerText(), summaryText);
+  await page.evaluate(() => { window.previewFails = true; });
+  await row.getByRole('button', { name: 'Preview case' }).click();
+  assert.match(await dialog.getByLabel('Report action status').innerText(), /Preview unavailable/);
+  for (const button of [row.getByRole('button', { name: 'Save recipe' }), dialog.getByRole('button', { name: 'Save report' })]) {
+    const download = page.waitForEvent('download'); await button.click(); await download;
+    assert.equal(await summary.innerText(), summaryText);
+  }
+  assert.deepEqual(await page.evaluate(() => window.reportPanel.getReport()), originalReport);
+  await table.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/alpha4-report-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await dialog.evaluate(d => { d.querySelector('.body').scrollTop = d.querySelector('.body').scrollHeight; });
+  assert.equal(await dialog.evaluate(d => {
+    const bounds = d.getBoundingClientRect(), summary = d.querySelector('.report-summary').getBoundingClientRect();
+    const footer = d.querySelector('.editor-footer').getBoundingClientRect();
+    return summary.top >= bounds.top && footer.bottom <= bounds.bottom && bounds.bottom <= innerHeight
+      && d.querySelector('.body').clientHeight > 80 && d.scrollWidth <= d.clientWidth;
+  }), true);
+  await page.screenshot({ path: 'test-results/alpha4-report-mobile.png', fullPage: true });
+});
+
+test('exact seed errors identify lines and cleanup preserves whitespace, duplicates and the previous report', async t => {
+  const page = await open(t);
+  await page.locator('#parameter-tools').click();
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' }), seeds = dialog.getByLabel('Exact seeds', { exact: true });
+  await seeds.fill('first\nsecond');
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  const recorded = await page.evaluate(() => window.pilot.parameterPanel.getReport());
+  const summary = await dialog.locator('.report-summary').innerText();
+  await seeds.fill('first\nsecond\n');
+  assert.equal(await seeds.getAttribute('aria-invalid'), 'true');
+  assert.match(await dialog.locator('.seed-status').innerText(), /Blank seed on line 3/);
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  assert.deepEqual(await page.evaluate(() => window.pilot.parameterPanel.getReport()), recorded);
+  assert.equal(await dialog.locator('.report-summary').innerText(), summary);
+  await seeds.fill(' First \n\n \n First \n');
+  await dialog.getByRole('button', { name: 'Remove empty lines' }).click();
+  assert.equal(await seeds.inputValue(), ' First \n \n First ');
+  assert.equal(await seeds.getAttribute('aria-invalid'), null);
+  assert.match(await dialog.locator('.seed-status').innerText(), /Removed 2 empty lines. 3 exact seeds/);
+  assert.deepEqual(await page.evaluate(() => window.pilot.parameterPanel.getReport()), recorded);
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  assert.deepEqual(await page.evaluate(() => window.pilot.parameterPanel.getReport().samples.map(s => s.seed)), [' First ', ' ', ' First ']);
+});
+
+async function openSlowEditor(t) {
+  const page = await open(t);
+  await page.evaluate(async () => {
+    const { createArtwork } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    window.editArt = createArtwork({ id: 'slow-editor', version: '1', seed: 'live',
+      parameters: { amount: { type: 'number', label: 'Amount', min: 0, max: 100, default: 0 } } });
+    window.draws = []; window.waiting = []; window.activeDraws = 0; window.maxDraws = 0;
+    window.editPanel = createParameterPanel({ artwork: window.editArt, livePreviewDelay: 40,
+      onChange: state => {
+        window.draws.push(state.parameters.amount); window.activeDraws++;
+        window.maxDraws = Math.max(window.maxDraws, window.activeDraws);
+        return new Promise((resolve, reject) => window.waiting.push({ resolve, reject }))
+          .finally(() => window.activeDraws--);
+      } });
+    window.editPanel.open();
+  });
+  return page;
+}
+
+test('live preview is opt-in, coalesces rapid drafts and serializes async redraws', async t => {
+  const page = await openSlowEditor(t), dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  const amount = dialog.getByLabel('Amount', { exact: true }), live = dialog.getByLabel('Live preview', { exact: true });
+  assert.equal(await live.isChecked(), false);
+  await amount.fill('10');
+  assert.equal(await dialog.locator('.editor-state').innerText(), 'Unapplied changes');
+  assert.deepEqual(await page.evaluate(() => window.draws), []);
+  await amount.fill('0');
+  assert.equal(await dialog.locator('.editor-state').innerText(), 'All changes applied');
+  await live.check();
+  await amount.evaluate(input => { for (const n of [20, 21, 22]) { input.value = n; input.dispatchEvent(new Event('input')); } });
+  await page.waitForFunction(() => window.draws.length === 1);
+  assert.deepEqual(await page.evaluate(() => window.draws), [22]);
+  assert.equal(await dialog.getByRole('button', { name: 'Apply values', exact: true }).isDisabled(), true);
+  await amount.fill('25');
+  assert.match(await dialog.locator('.editor-state').innerText(), /Unapplied changes waiting/);
+  await page.evaluate(() => window.waiting.shift().resolve());
+  await page.waitForFunction(() => window.draws.length === 2);
+  assert.equal(await amount.inputValue(), '25');
+  assert.deepEqual(await page.evaluate(() => ({ draws: window.draws, max: window.maxDraws })), { draws: [22, 25], max: 1 });
+  await amount.fill('30'); await live.uncheck();
+  await page.evaluate(() => window.waiting.shift().resolve());
+  await page.waitForFunction(() => window.activeDraws === 0);
+  await page.waitForTimeout(100);
+  assert.deepEqual(await page.evaluate(() => window.draws), [22, 25]);
+  assert.equal(await dialog.locator('.editor-state').innerText(), 'Unapplied changes');
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.editArt.parameters.amount), 30);
+  await page.evaluate(() => window.waiting.shift().resolve());
+  await dialog.getByRole('button', { name: 'Restore starting values' }).click();
+  assert.equal(await page.evaluate(() => window.editArt.parameters.amount), 0);
+  await page.evaluate(() => window.waiting.shift().resolve());
+});
+
+test('redraw failures and external changes stop live edits without losing the draft', async t => {
+  const page = await openSlowEditor(t), dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  const amount = dialog.getByLabel('Amount', { exact: true }), live = dialog.getByLabel('Live preview', { exact: true });
+  await live.check(); await amount.fill('101'); await page.waitForTimeout(100);
+  assert.deepEqual(await page.evaluate(() => window.draws), []);
+  await amount.fill('10'); await page.waitForFunction(() => window.draws.length === 1);
+  await amount.fill('20');
+  await page.evaluate(() => window.waiting.shift().reject(new Error('GPU unavailable')));
+  await page.waitForFunction(() => window.activeDraws === 0);
+  assert.equal(await live.isChecked(), false);
+  assert.equal(await amount.inputValue(), '20');
+  assert.equal(await page.evaluate(() => window.editArt.parameters.amount), 10);
+  assert.match(await dialog.locator('.editor-footer .status').innerText(), /Values applied, but redraw failed: GPU unavailable/);
+  await live.check(); await page.waitForFunction(() => window.draws.length === 2);
+  await amount.fill('30');
+  await page.evaluate(() => window.editArt.setParameters({ amount: 80 }));
+  await page.evaluate(() => window.waiting.shift().resolve());
+  assert.equal(await live.isChecked(), false);
+  assert.equal(await amount.inputValue(), '30');
+  assert.equal(await dialog.locator('.editor-state').innerText(), 'External changes — reload required');
+  await dialog.getByRole('button', { name: 'Apply values', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.editArt.parameters.amount), 80);
+  await dialog.getByRole('button', { name: 'Reload current values' }).click();
+  assert.equal(await amount.inputValue(), '80');
+  assert.equal(await dialog.locator('.editor-state').innerText(), 'All changes applied');
+});
+
+test('closing or disposing an editor cancels queued live edits, including during a redraw', async t => {
+  const page = await openSlowEditor(t), dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  const amount = dialog.getByLabel('Amount', { exact: true });
+  await dialog.getByLabel('Live preview', { exact: true }).check();
+  await amount.evaluate(input => {
+    input.value = '10'; input.dispatchEvent(new Event('input'));
+    input.closest('dialog').querySelector('header button').click();
+  });
+  await page.waitForTimeout(100);
+  assert.deepEqual(await page.evaluate(() => window.draws), []);
+  await page.evaluate(() => window.editPanel.open());
+  await amount.fill('20'); await page.waitForFunction(() => window.draws.length === 1);
+  await amount.fill('30');
+  await page.evaluate(() => { window.editPanel.dispose(); window.waiting.shift().resolve(); });
+  await page.waitForTimeout(100);
+  assert.deepEqual(await page.evaluate(() => window.draws), [20]);
+  assert.equal(await dialog.count(), 0);
+});
+
+test('reports with no resolved values show unavailable shares and disable replay', async t => {
+  const page = await open(t);
+  await page.evaluate(async () => {
+    const { createArtwork } = await import('/src/index.js');
+    const { createParameterPanel } = await import('/src/parameter-panel.js');
+    const resolver = { id: 'broken', version: '1', resolve() { throw new Error('Unavailable'); } };
+    const art = createArtwork({ id: 'empty-report', version: '1', seed: 'live', resolver, values: { palette: 'a' },
+      parameters: { palette: { type: 'choice', label: 'Palette', choices: ['a', 'b'] } } });
+    window.emptyPanel = createParameterPanel({ artwork: art, resolver, seeds: ['first'] }); window.emptyPanel.open();
+  });
+  const dialog = page.getByRole('dialog', { name: 'Parameter lab' });
+  await dialog.getByRole('button', { name: 'Run parameter checks' }).click();
+  const table = dialog.getByRole('table', { name: 'Palette counts' });
+  assert.equal(await table.locator('tbody tr').count(), 0);
+  assert.match(await dialog.innerText(), /No resolved cases; percentages are unavailable/);
+  await dialog.getByLabel('Hide zero counts for Palette').uncheck();
+  assert.deepEqual(await table.locator('.count-share').allTextContents(), ['—', '—']);
+  assert.equal(await dialog.getByRole('button', { name: 'Save recipe', exact: true }).isDisabled(), true);
 });

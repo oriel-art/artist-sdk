@@ -62,6 +62,7 @@ try {
   } });
   const captureContext = () => ({ elapsedSeconds: renderer.getSnapshot()?.time ?? time, aspectRatio: 1 });
   const parameterPanel = createParameterPanel({ artwork: art, onChange: update, captureContext,
+    contextLabels: { elapsedSeconds: 'Elapsed time (seconds)', aspectRatio: 'Composition aspect ratio' },
     onPreviewCase: recipe => { location.href = shareURL(location.href, recipe); } });
   art.registerQuery('info', { description: 'Artist-written information and controls', handler: () => infoPanel.getInfo() });
   $('info').onclick = () => infoPanel.open();

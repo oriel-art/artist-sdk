@@ -3,8 +3,8 @@
 A small JavaScript SDK for reproducible generative art, with a first pilot for
 plain JavaScript and raw WebGL/GLSL on an HTML canvas.
 
-**Experimental: 0.1.0-alpha.3.** Kepler's Dream integration was reported on
-alpha.2; alpha.3 addresses that feedback and needs artist revalidation. APIs are
+**Experimental: 0.1.0-alpha.4.** Kepler's Dream improvements were reported on
+alpha.3; alpha.4 addresses the next report/editing feedback and needs artist validation. APIs are
 not stable, and the artwork source/tests are not held in this repository.
 The SDK has no runtime dependencies and works as native browser ES modules.
 
@@ -21,6 +21,8 @@ The [info and parameter tools guide](docs/info-and-parameters.md) covers the
 `i` popup for Kepler's Dream and utilities for testing the artwork's parameters.
 The [alpha.3 guide](docs/alpha3-guide.md) covers original artist generators,
 case replay, recipe context, studio controls, and export uniform bindings.
+The [alpha.4 guide](docs/alpha4-guide.md) covers clearer reports, persistent
+summaries/actions, exact-seed guidance and optional live preview.
 
 Included:
 
@@ -31,6 +33,8 @@ Included:
 - An optional artwork info popup and studio parameter lab with seed reports,
   artist resolvers, warning/error diagnostics, per-case replay and recipes,
   searchable choices/swatches, sliders, grouped boundaries, and configurable docking.
+  Alpha.4 adds sortable count tables, labeled case summaries, persistent editing
+  actions, precise seed errors, and opt-in live preview that awaits redraws.
 - A shader studio, host viewer, unit/browser tests, and bundle-size reports.
 
 Keep your own renderer to adopt the core utilities independently. The optional
@@ -52,7 +56,7 @@ For development checks: `npm ci`, `npm test`, `npm run test:browser`, and
 - [Artwork bridge](docs/artwork-bridge.md): proposed communication between an
   artwork and its viewer through commands, queries, and events.
 - [Kepler's Dream feedback](docs/keplers-dream-feedback.md): reported evidence,
-  alpha.3 responses, and outstanding artist/device validation.
+  alpha.3 results, alpha.4 responses, and outstanding artist/device validation.
 - [Roadmap](docs/roadmap.md): milestones, dependencies, acceptance criteria,
   and decisions to resolve through artist trials and future implementation.
 
