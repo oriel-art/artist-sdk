@@ -266,6 +266,12 @@ Hooks should not mutate artwork state.
 
 ### Print acceptance and saved-frame screening
 
+For reusable integration, `createPrintWorkflow()` accepts an artwork, declared
+policy, synchronous capture callback and stable inspector. See the
+[print workflow pilot](print-workflow-pilot.md) for physical specifications,
+saved records, operating limits and the Mihira trial. It does not record proof
+decisions. The older mode example below remains a scoped workflow illustration.
+
 Static validation checks declared output limits, integer dimensions, and DPI
 consistency. Even a runtime `supported` result is acceptance by the supplied
 checks, **not artist approval or a guarantee of physical print quality**.

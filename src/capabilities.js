@@ -1,6 +1,8 @@
 import { ArtworkError, requireValue } from './errors.js';
 import { data, fields, text, positive, list, range } from './description-data.js';
 
+export { createPrintWorkflow, PRINT_JOB_VERSION } from './print-workflow.js';
+
 export const CAPABILITIES_VERSION = '1.0';
 const renderingFields = ['width', 'height', 'maxPixels', 'aspectRatios', 'aspectRatioRounding', 'formats'];
 const printFields = ['width', 'height', 'dpi', 'tiling'];

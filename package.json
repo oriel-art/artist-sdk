@@ -49,7 +49,7 @@
   ],
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "test": "node --test tests/core.test.mjs tests/testing.test.mjs tests/recipes.test.mjs tests/descriptions.test.mjs tests/capability-workflows.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/testing.test.mjs tests/recipes.test.mjs tests/descriptions.test.mjs tests/capability-workflows.test.mjs tests/print-workflow.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
     "size": "node scripts/size.mjs",
     "build": "node scripts/build-packages.mjs",

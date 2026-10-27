@@ -81,3 +81,65 @@ export function getCapabilities(description: unknown): Capabilities;
 export function validateRequest(description: Capabilities, request: unknown): ValidationResult;
 export function evaluateRequest(description: Capabilities, request: RenderRequest, evaluator?: RequestEvaluator, options?: EvaluationOptions): Promise<ValidationResult>;
 export function createCapabilities(description: Capabilities, options?: { evaluate?: RequestEvaluator }): CapabilitiesProvider;
+
+export const PRINT_JOB_VERSION: 'oriel-print-job/1.0';
+export type PrintJSON = null | boolean | number | string | PrintJSON[] | { [key: string]: PrintJSON };
+export interface PrintArtwork { readonly id: string; readonly version: string }
+export interface PrintSpecification {
+  paper: string;
+  printer: string;
+  /** Artist/printer-selected profile identifier. The SDK does not apply ICC transforms. */
+  colourProfile: string;
+  renderingIntent: 'perceptual' | 'relative-colorimetric' | 'absolute-colorimetric' | 'saturation';
+  /** Artist-owned acceptance criteria, including units where relevant. */
+  grain: string;
+  lineWeight: string;
+  notes?: string;
+}
+export type PrintRequest = RenderRequest & { print: NonNullable<RenderRequest['print']> };
+export interface PrintCapture {
+  /** Replay data belongs to the artist's recipe contract; identity must match artwork. */
+  recipe: { artworkId: string; artworkVersion: string; [key: string]: PrintJSON };
+  /** Other keys carry artist-defined time/cadence/state. Ratios must match declared policy. */
+  frame: { aspectRatio: number; [key: string]: PrintJSON };
+  /** Plain JSON only; convert typed arrays to arrays in the capture callback. */
+  uniforms?: { [key: string]: PrintJSON };
+}
+export interface PrintJobRecord {
+  schemaVersion: typeof PRINT_JOB_VERSION;
+  id: string;
+  artwork: PrintArtwork;
+  capabilities: Capabilities;
+  request: PrintRequest;
+  specification: PrintSpecification;
+  capture: PrintCapture;
+}
+export interface PrintCheck { passed: boolean; notes?: string }
+export interface PrintChecks { grain: PrintCheck; lineWeight: PrintCheck; colour: PrintCheck }
+export type PrintInspector = (job: PrintJobRecord, context: { signal: AbortSignal }) => PrintChecks | Promise<PrintChecks>;
+export interface PrintScreeningReport {
+  job: PrintJobRecord;
+  screening: ValidationResult;
+  checks?: PrintChecks;
+  /** Screening never records proof approval. Keep physical decisions outside the SDK. */
+  printApproval: 'not-granted';
+}
+export interface PrintJob {
+  getJob(): PrintJobRecord;
+  validate(): ValidationResult;
+  screen(options?: EvaluationOptions): Promise<PrintScreeningReport>;
+}
+export interface PrintWorkflow {
+  getCapabilities(): Capabilities;
+  /** Captures synchronously; invalid/unsupported requests throw before capture. */
+  captureJob(input: { id: string; request: PrintRequest; specification: PrintSpecification }): PrintJob;
+}
+export function createPrintWorkflow<Artwork extends PrintArtwork>(options: {
+  artwork: Artwork;
+  capabilities: Capabilities;
+  /** Read-only, synchronous snapshot of recipe, frame and uniforms. Never render here. */
+  capture: (artwork: Artwork, context: { request: PrintRequest; specification: PrintSpecification }) => PrintCapture;
+  /** Reuse a stable function: at most four inspections across workflows in one module.
+   * Timed-out/cancelled work retains capacity until it settles. */
+  inspect?: PrintInspector;
+}): PrintWorkflow;

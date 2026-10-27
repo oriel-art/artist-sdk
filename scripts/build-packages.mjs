@@ -10,4 +10,5 @@ for (const name of ['capabilities', 'metadata']) {
     bundle: true, format: 'esm', platform: 'neutral', target: 'es2022' });
   await copyFile(`${root}/src/${name}.d.ts`, `${out}/index.d.ts`);
   await copyFile(`${root}/docs/capabilities-and-metadata.md`, `${out}/guide.md`);
+  if (name === 'capabilities') await copyFile(`${root}/docs/print-workflow-pilot.md`, `${out}/print-workflow-pilot.md`);
 }
