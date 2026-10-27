@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { testParameters, parameterCases } from '../src/testing.js';
+import { testParameters, parameterCases, parseSeedLines } from '../src/testing.js';
 import { createArtwork } from '../src/index.js';
 
 const definitions = {
@@ -77,4 +77,16 @@ test('constant ranges and extreme finite values produce usable statistics', () =
   const report = testParameters({ fixed: { type: 'number', min: 1e308, max: 1e308 } }, { count: 20 });
   assert.equal(report.summary.fixed.mean, 1e308);
   assert.deepEqual(report.summary.fixed.histogram.counts, [20, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+});
+
+
+test('pasted seed parsing preserves exact strings, duplicates and line boundaries', () => {
+  assert.deepEqual(parseSeedLines(' first \r\nsecond\n first \r '), [' first ', 'second', ' first ', ' ']);
+  assert.deepEqual(parseSeedLines('0xAa\n0xaa'), ['0xAa', '0xaa']);
+  assert.throws(() => parseSeedLines('first\nsecond\n'), /Blank seed on line 3/);
+  assert.throws(() => parseSeedLines('first\n\nthird'), /Blank seed on line 2/);
+  assert.throws(() => parseSeedLines(''), /Blank seed on line 1/);
+  assert.throws(() => parseSeedLines('first\n' + 'x'.repeat(4097)), /line 2 has 4097 characters/);
+  assert.throws(() => parseSeedLines(Array(10001).fill('a').join('\n')), /10000 seed lines/);
+  assert.throws(() => parseSeedLines(null), /must be text/);
 });

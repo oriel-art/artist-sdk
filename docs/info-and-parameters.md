@@ -1,10 +1,11 @@
 # Artwork information and parameter testing
 
-Available in **0.1.0-alpha.3**. Mihira's first artwork, **Kepler's Dream**, already
+Available in **0.1.0-alpha.4**. Mihira's first artwork, **Kepler's Dream**, already
 has an `i` action for information. The SDK now provides an optional popup that
 can take over the presentation of that information, plus parameter tools for
-the artist's development workflow. The team has reported an alpha.2 integration; its source is not held here.
-The runnable example remains Contour study. See the [alpha.3 guide](alpha3-guide.md)
+the artist's development workflow. The team has reported alpha.2/alpha.3 integration; its source is not held here.
+The runnable example remains Contour study. See the [alpha.4 guide](alpha4-guide.md)
+for current report/editing behavior and the [alpha.3 guide](alpha3-guide.md)
 for custom resolvers, case replay, recipe context, sliders/search/swatches and docking.
 
 Run `npm run dev`, open `/examples/webgl/`, and use **About this work · i** or
@@ -112,17 +113,30 @@ The panel offers:
 - Draft edits with **Apply values**, **Reload current values**, and **Restore
   starting values**. Starting values mean those captured when the panel was created.
   Applying values keeps the original seed; save a recipe/link to retain the overrides.
+  These actions and a draft/render status indicator remain visible while scrolling.
+  Optional live preview is off by default; when enabled, valid edits coalesce and
+  wait for the previous `onChange` promise before applying the next draft.
 - A boundary-case selector grouped by readable parameter names: numeric minimum/maximum, each boolean value, and each
   choice. Loading a case changes the fields; Apply previews it in the artwork.
 - A seed sampler with observed ranges, means, category counts, and artist-check
   diagnostics. A downloadable JSON report includes every case and histogram.
   Case rows support Preview via an artist callback and Save recipe. Long choice
   lists are searchable; optional swatches and panel placement are configurable.
+  Sortable category tables hide zero counts by default, with an explicit toggle.
+  Labeled case summaries include supplied swatches and expandable raw JSON.
+- Persistent report totals and recorded comparison context, separate from action
+  messages. Reports explicitly identify the generator and exclude editor overrides.
+- Exact-seed validation identifies invalid lines; Remove empty lines is explicit
+  and preserves spaces, ordering and duplicates. It does not start a sample run.
 
 The panel calls `setParameters` before `onChange`. If rendering fails, it reports
 that the values were applied but redraw failed; it does not claim to have rolled
 back artist-owned GPU state. If parameters change elsewhere while a draft is
 being edited, Apply requires a reload instead of overwriting that change silently.
+Return the renderer's promise from `onChange` for asynchronous work. Redraw
+failure or a conflicting external update stops live preview; closing/disposal
+cancels queued edits, not an artist callback already running. See the
+[alpha.4 editing contract](alpha4-guide.md#edit-with-persistent-actions-and-optional-live-preview).
 
 Parameter tools require `mode: 'studio'`; constructing them in published mode
 throws `FORBIDDEN`. They have no global hotkey and are not exposed as viewer bridge
@@ -191,4 +205,5 @@ devices, using recorded seeds to reproduce problems.
 
 The current parameter types remain number, integer, boolean, and choice. Vectors,
 colors, dependent parameter graphs, screenshot galleries, and visual-diff tooling
-are future work. Keep the artist's check code and artwork version with saved reports.
+are future work. Case thumbnails are explicitly deferred to the next iteration.
+Keep the artist's check code and artwork version with saved reports.

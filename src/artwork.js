@@ -3,7 +3,7 @@ import { resolveWith, generatorIdentity, validateParameters, validateInput } fro
 import { ArtworkError, requireValue, copy, identifier, object } from './errors.js';
 import { RECIPE_VERSION, makeRecipe, contextEnvelope, readContext, validateGenerator } from './recipe.js';
 
-export const SDK_VERSION = '0.1.0-alpha.3';
+export const SDK_VERSION = '0.1.0-alpha.4';
 export { RECIPE_VERSION };
 
 export function createArtwork({ id, version, seed, parameters = {}, values = {}, mode = 'studio', traits = () => ({}), events = [], resolver, context, contextValues }) {

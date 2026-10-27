@@ -1,7 +1,7 @@
 # Artist SDK feature plan
 
 Status: broader proposed scope, updated October 26, 2026. A limited raw-WebGL
-pilot through `0.1.0-alpha.3` is implemented; see the [pilot guide](pilot-guide.md) for its actual
+pilot through `0.1.0-alpha.4` is implemented; see the [pilot guide](pilot-guide.md) for its actual
 API and boundaries. This document describes the larger product, not a list of
 already delivered features. Milestones and delivery criteria are in the
 [roadmap](roadmap.md); the [artwork bridge](artwork-bridge.md) defines the
@@ -36,10 +36,11 @@ emit events without exposing its internal implementation.
 
 ## Decisions from the Kepler's Dream pilot
 
-The [integration feedback](keplers-dream-feedback.md) reports successful alpha.2
+The [integration feedback](keplers-dream-feedback.md) reports successful alpha.2/alpha.3
 adoption while retaining the original renderer, identity algorithm, random draw
-order and Verse preview behavior. Alpha.3 implements the following focused
-revisions; see the [integration guide](alpha3-guide.md) for the actual API.
+order and Verse preview behavior. Alpha.3 implemented the following focused
+revisions, with improvements confirmed in the team's follow-up; see the
+[integration guide](alpha3-guide.md) for the actual API.
 
 - **Original generation is a first-class input.** Artwork construction and
   sampling accept the same versioned artist resolver. Complete recorded values
@@ -67,7 +68,33 @@ revisions; see the [integration guide](alpha3-guide.md) for the actual API.
   uniform bindings can be renamed or disabled. Captured artist values remain
   fixed during isolated export; only the enabled resolution binding changes.
 
-M0b remains open for alpha.3 artwork revalidation, Mihira's observed hands-on
+Alpha.4 responds to the follow-up review with these decisions; see the
+[alpha.4 guide](alpha4-guide.md) for implemented behavior:
+
+- **Reports support scanning without changing evidence.** Sort category counts,
+  optionally hide zeros, and show readable case values with supplied swatches.
+  Keep raw JSON available and every case in report downloads. Percentages use
+  resolved cases, including warnings; resolution failures stay in diagnostic totals.
+- **Report context survives actions.** Keep totals, generator identity, override
+  exclusion and captured comparison values visible independently of preview/save
+  messages. Current playback must not rewrite the recorded comparison moment.
+- **Exact input deserves precise errors.** Identify invalid seed lines. Offer
+  explicit empty-line removal while preserving nonempty strings and duplicates.
+- **Editing is a draft workflow.** Keep actions and unapplied/render/conflict status
+  visible. Live preview is optional and off by default; coalesce edits and await
+  the artist's renderer before applying the next draft. Failures are visible,
+  preserve drafts, and do not claim renderer rollback.
+- **Visual case review is the next step.** Thumbnails are deferred to the next
+  iteration, not implemented in alpha.4. Plan an isolated artist rendering hook,
+  bounded resources, cancellation and context-correct captures before adding
+  images to reports. Existing report sampling remains parameter-only.
+
+The reported alpha.3 trial sampled 100 seeds with zero warnings, failures or
+execution errors; earlier checks passed 500 seeds, recipes and 1024/2048 exports.
+These do not establish aesthetic quality or rendering equivalence across devices.
+Separate-tab preview and playback controls are artist integration choices.
+
+M0b remains open for alpha.4 artwork validation, Mihira's observed hands-on
 review, real-device visuals, 4096 exports, additional browsers and Verse sandbox
 validation. Reported artwork tests and the SDK's own fixtures are separate evidence.
 

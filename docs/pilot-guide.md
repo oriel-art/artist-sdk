@@ -1,14 +1,15 @@
 # Mihira's JavaScript / WebGL pilot
 
-Version: **0.1.0-alpha.3**. This is an experimental SDK to try on an actual
+Version: **0.1.0-alpha.4**. This is an experimental SDK to try on an actual
 artwork. It contains working code and examples; the broader feature plan remains
 a proposal. APIs and recipe/protocol versions can change after artist feedback.
 
 The first project, **Kepler's Dream**, uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
 Three.js, React, build step, network service, or runtime dependency is required.
-An alpha.2 integration has been reported; its source/tests have not been supplied
+Alpha.2/alpha.3 integrations have been reported; their source/tests have not been supplied
 here. Read the [feedback record](keplers-dream-feedback.md) and
-[alpha.3 integration guide](alpha3-guide.md) for revisions and remaining validation.
+[alpha.3 integration guide](alpha3-guide.md) for resolver/context APIs and the
+[alpha.4 guide](alpha4-guide.md) for current report/editing behavior and validation.
 
 ## Start with the working examples
 
@@ -271,7 +272,7 @@ Verse, Art Blocks, and Forever Library adapters remain future work.
 ## Feedback to collect from Mihira
 
 The reported Kepler's Dream integration establishes a starting point. Use the
-[alpha.3 feedback checklist](keplers-dream-feedback.md#m0b-validation-still-required)
+[alpha.4 feedback checklist](alpha4-guide.md#keplers-dream-acceptance-session)
 for the next actual artist session; other renderer examples do not block it.
 
 - Which WebGL/GLSL version, browser/GPU, and extensions does it use?
@@ -287,7 +288,7 @@ for the next actual artist session; other renderer examples do not block it.
   error messages, integration time, and a short list of friction points.
 
 Those observations determine the next renderer/export work and any changes to
-the API. Alpha.3 artwork revalidation and the broader M0 design review remain open.
+the API. Alpha.4 artwork validation and the broader M0 design review remain open.
 
 ## Verification and size
 
@@ -310,7 +311,7 @@ for useful combinations, including their dependencies. It excludes artist code,
 shaders, assets, and the studio page. Budgets will be set after the first actual
 integration; an on-chain-size guarantee is not implied.
 
-Alpha.3 measurement with esbuild 0.28.2 (ES2022 ESM, gzip level 9):
+Alpha.4 measurement with esbuild 0.28.2 (ES2022 ESM, gzip level 9):
 
 | Imported functionality | Minified bytes | Gzip bytes |
 | --- | ---: | ---: |
@@ -321,12 +322,13 @@ Alpha.3 measurement with esbuild 0.28.2 (ES2022 ESM, gzip level 9):
 | Shader runner | 7,985 | 3,681 |
 | Core, renderer, and bridge | 23,646 | 9,222 |
 | Optional info popup | 11,067 | 4,382 |
-| Optional parameter testing | 10,582 | 4,180 |
-| Optional parameter panel | 30,125 | 11,342 |
+| Optional parameter testing | 10,943 | 4,332 |
+| Optional parameter panel | 40,255 | 14,512 |
 
 Rows are alternative bundles with shared dependencies included, not additive costs.
-Alpha.3 adds recipe/context validation and richer optional studio UI; the panel
-increased from 7,201 to 11,342 gzip bytes. Basic core imports still exclude it.
+Alpha.4 adds report presentation and editing behavior to the optional studio UI;
+the panel increased from 11,342 to 14,512 gzip bytes. Core measurements are
+unchanged, and basic core imports still exclude the panel.
 Record target-specific bundle needs before declaring an on-chain budget.
 
 Browser design references: [WebGL resource and context guidance](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices)

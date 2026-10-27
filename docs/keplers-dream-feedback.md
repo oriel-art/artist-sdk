@@ -1,9 +1,10 @@
-# Kepler's Dream: integration feedback and alpha.3 response
+# Kepler's Dream: integration feedback through alpha.4
 
 Recorded October 26, 2026 from the integration report supplied by the project
-team. This is reported evidence about alpha.2, not a reproduction against source
-held in this repository. Mihira's artwork, the 500-seed report, and its 26 tests
-have not been supplied here. The runnable SDK example remains Contour study.
+team, including follow-up results on alpha.3. This is reported evidence, not a
+reproduction against source held in this repository. Mihira's artwork, reports
+and test suite have not been supplied here. The runnable SDK example remains
+Contour study. Earlier alpha.2 evidence below is retained with its original scope.
 
 ## Reported artwork and adoption
 
@@ -49,20 +50,62 @@ See the [alpha.3 integration guide](alpha3-guide.md) for exact APIs, migration
 rules and limitations. The SDK does not silently replace existing generation,
 resample flagged cases, infer missing temporal state, or restore GPU state itself.
 
+## Reported alpha.3 results
+
+The team reports integrating **0.1.0-alpha.3** into Kepler's Dream and confirms:
+
+- The artist resolver retains original seeded generation, exact-seed tests are
+  practical, and warnings, failed checks and execution errors are distinct.
+- Preview case and recipe download remove manual replay steps. In the browser
+  trial, preview reopened the recorded seed and parameters in a paused artwork.
+- Versioned context/restoration preserves elapsed time, formation cadence and
+  aspect ratio for comparison.
+- Searchable swatches help with 44 palettes; sliders, readable long names,
+  grouped boundaries and docking improve editing and integration.
+- Artist-controlled export bindings retain original seed/time uniforms and shaders.
+
+The fresh browser run sampled **100 seeds with no warnings, failures or execution
+errors**. Earlier alpha.3 checks reportedly passed 500 seeds, recipe restoration,
+and 1024/2048 PNG exports. These results do not establish aesthetic quality,
+representative edition distributions or cross-device rendering equivalence.
+They do not independently reproduce the reported artwork tests in this repository.
+The separate-tab preview and studio playback toolbar are integration choices,
+not SDK defects. Mihira's hands-on review time has not been measured.
+
+## Alpha.4 response to remaining friction
+
+| Alpha.3 feedback | Alpha.4 implementation | Artwork acceptance to collect |
+| --- | --- | --- |
+| Palette counts are a text block with every zero; cases show raw JSON | Sortable count/share tables, zero hiding enabled by default, readable values and supplied swatches; expandable raw JSON | Scan 44 palettes, sort/count, reveal zeros, verify full downloads are unchanged |
+| Opening a case overwrites report totals | Persistent report summary separate from action messages and failed new runs | Preview/save/error actions preserve sampled and diagnostic totals |
+| Trailing newline gives an opaque seed error | Line-specific errors, invalid-field indication and explicit Remove empty lines | Identify blank line 3, remove only empty lines, preserve whitespace/duplicates |
+| Apply requires scrolling; drafts are unclear | Persistent Apply/Reset/Reload with dirty/render/conflict status | Reach actions throughout editing and report review; reset/revert indicators remain accurate |
+| Sliders would benefit from optional live feedback | Off-by-default live preview, coalesced edits, awaited redraws, cancellation of queued work and honest error handling | Test fast and expensive real renderers without overlapping redraws or losing the latest draft |
+| Sampling and comparison conditions need clarity | Visible generator identity and override exclusion; recorded context with optional labels/units, source/schema details | Confirm original generation and time/cadence/aspect before replay |
+| Thumbnails would speed visual review | **Deferred to the next iteration at the user's request** | Define artist-owned isolated capture, size/concurrency limits, cancellation and visual-review workflow before implementation |
+
+See the [alpha.4 guide](alpha4-guide.md) for exact options and behavior. Existing
+recipe/report 0.2 and bridge 0.1 formats remain unchanged. Core imports exclude
+the studio UI. Alpha.4 local verification comprises 25 unit tests, 25
+Chrome/SwiftShader browser tests and desktop/mobile screenshot inspection; these
+are SDK fixtures, separate from the reported Kepler's Dream results above.
+
 ## M0b validation still required
 
 1. Obtain a minimal integration patch or runnable excerpt, original resolver,
    seed-to-value fixtures, recorded flagged report, uniform mapping, and the
    units/meaning of elapsed time, cadence and composition aspect ratio.
-2. Repeat the complete loop in Kepler's Dream: sample original inputs, inspect a
-   warning, preview, save recipe, reopen the moment, export.
+2. Adopt alpha.4 in Kepler's Dream and exercise the new report/editing acceptance
+   above. Repeat the complete loop: sample original inputs, inspect a warning,
+   preview, save recipe, reopen the moment, export. Preserve representative
+   evidence of the already reported alpha.3 successes.
 3. Record actual browser/GPU/device details and inspect framing, grain, line
    weight and texture behavior. Test 4096 exports, additional browsers, and
    Verse sandbox behavior explicitly.
 4. Observe Mihira using the revised tools. Record integration/review time,
    manual steps, confusing controls, and the next two or three priorities.
 
-M0b status: **integration reported; alpha.3 revisions implemented; artist-led
-revalidation and remaining environment checks outstanding**. M1 and later
+M0b status: **alpha.3 integration and improvements reported; alpha.4 implemented;
+alpha.4 artist validation and remaining environment checks outstanding**. M1 and later
 milestones are not complete. A full studio shell, gallery, simulation replay,
 new renderers, platform adapters and publishing remain separate future scope.

@@ -1,6 +1,6 @@
 {
   "name": "@oriel-art/artist-sdk",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Experimental, dependency-free utilities for JavaScript generative art",
   "type": "module",
   "sideEffects": false,

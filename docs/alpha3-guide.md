@@ -5,6 +5,10 @@ feedback](keplers-dream-feedback.md). These APIs are experimental. The SDK has n
 runtime dependencies, and all UI remains opt-in. Keep the original renderer,
 shaders, identity algorithm and platform behavior.
 
+This guide retains the alpha.3 API and migration details. The current release is
+**0.1.0-alpha.4**; see the [alpha.4 guide](alpha4-guide.md) for report presentation,
+seed-input guidance and optional live preview. Recipe/report formats are unchanged.
+
 Run `npm run dev` and open `http://127.0.0.1:4173/examples/webgl/`. Pause or seek
 to a moment, open Parameter lab, sample seeds, preview a case, or save its recipe.
 The example's preview opens a recipe URL and restores the selected moment paused.
@@ -276,6 +280,8 @@ This does not add samplers, WebGL 2, multipass rendering, or simulation replay.
 SDK fixtures cover custom resolver identity, warnings/errors, exact-case replay,
 legacy/new recipes, context validation/restoration, same-environment moment
 comparison, browser controls, and captured export uniforms. The reported
-Kepler's Dream source/tests have not been reproduced here. Its alpha.3 adoption,
-real-device review, 4096 exports, other browsers, Verse sandbox validation and
-Mihira's hands-on review time remain outstanding.
+Kepler's Dream source/tests have not been reproduced here. The team subsequently
+reported successful alpha.3 adoption and improved sampling, replay, context,
+controls and uniform ownership; see the [feedback record](keplers-dream-feedback.md#reported-alpha3-results).
+Alpha.4 artwork validation, real-device review, 4096 exports, other browsers,
+Verse sandbox validation and Mihira's hands-on review time remain outstanding.

@@ -3,6 +3,18 @@ import { requireValue, copy, object, seedValue, synchronous, identifier } from '
 import { RANDOM_VERSION } from './random.js';
 import { makeRecipe, contextEnvelope, jsonContext } from './recipe.js';
 
+/** Parse pasted exact seeds without trimming, deduplicating or discarding lines. */
+export function parseSeedLines(text) {
+  requireValue(typeof text === 'string', 'Seed input must be text');
+  const seeds = text.split(/\r\n|\r|\n/);
+  seeds.forEach((seed, index) => {
+    requireValue(seed.length > 0, `Blank seed on line ${index + 1}. Remove empty lines or enter a seed.`);
+    requireValue(seed.length <= 4096, `Seed on line ${index + 1} has ${seed.length} characters; the maximum is 4096.`);
+  });
+  requireValue(seeds.length <= 10000, 'Provide at most 10000 seed lines');
+  return seeds;
+}
+
 /** Isolated parameter sampling; artist callbacks must also avoid captured live state. */
 export function testParameters(definitions, { seeds, count = 100, prefix = 'parameter-test', seedSource,
   overrides = {}, check, resolver, artwork, context, contextValues } = {}) {
