@@ -117,3 +117,111 @@ test('print screening stays bound to a captured composition and frame without gr
   await assert.rejects(invalid.screen(), /Inspection must explicitly report/);
   unregister();
 });
+
+const printFrame = () => ({ elapsedSeconds: 12.5, cadence: 1, aspectRatio: EXAMPLE_ASPECT_RATIO });
+const printRequest = () => ({ ...output(2048, 1088), print: { width: 8, height: 4.25, unit: 'in', dpi: 256 } });
+const passedInspection = () => ({ grain: true, lineWeight: true, colour: true });
+
+test('print jobs reject unsafe and oversized inputs before cloning or inspecting', t => {
+  const { artwork, unregister } = createModeExample();
+  t.after(unregister);
+  let getterCalls = 0, hookCalls = 0, cloneCalls = 0, inspections = 0;
+  const clone = globalThis.structuredClone;
+  t.mock.method(globalThis, 'structuredClone', (...args) => { cloneCalls++; return clone(...args); });
+  const accessor = Object.defineProperty(printRequest(), 'width', {
+    enumerable: true, get() { getterCalls++; return 2048; }
+  });
+  const invalidRequests = [
+    [accessor, 'INVALID_INPUT'],
+    [{ ...printRequest(), extra: new Uint8Array(8 * 1024 * 1024) }, 'INVALID_INPUT'],
+    [{ ...printRequest(), extra: 'x'.repeat(8192) }, 'LIMIT'],
+    [{ ...printRequest(), extra: Array(10000).fill(0) }, 'LIMIT'],
+    [{ ...printRequest(), toJSON() { hookCalls++; return printRequest(); } }, 'INVALID_INPUT'],
+    [{ ...printRequest(), extra: true }, 'INVALID_REQUEST']
+  ];
+  const inspect = () => { inspections++; return passedInspection(); };
+  for (const [request, expected] of invalidRequests) {
+    assert.throws(() => createSavedPrintJob(artwork, { frame: printFrame(), request, inspect }), code(expected));
+  }
+  const frameAccessor = Object.defineProperty(printFrame(), 'aspectRatio', {
+    enumerable: true, get() { getterCalls++; return EXAMPLE_ASPECT_RATIO; }
+  });
+  for (const frame of [frameAccessor, { ...printFrame(), toJSON() { hookCalls++; return printFrame(); } }, null]) {
+    assert.throws(() => createSavedPrintJob(artwork, { frame, request: printRequest(), inspect }), code('INVALID_INPUT'));
+  }
+  assert.deepEqual({ getterCalls, hookCalls, cloneCalls, inspections }, { getterCalls: 0, hookCalls: 0, cloneCalls: 0, inspections: 0 });
+});
+
+test('saved frames cannot replace the artwork policy and static rejection skips inspection', async t => {
+  const { artwork, discovery, unregister } = createModeExample();
+  t.after(unregister);
+  let inspections = 0;
+  const inspect = () => { inspections++; return passedInspection(); };
+  const square = { ...output(2048, 2048), print: { width: 8, height: 8, unit: 'in', dpi: 256 } };
+  assert.throws(() => createSavedPrintJob(artwork, {
+    frame: { ...printFrame(), aspectRatio: 1 }, request: square, inspect
+  }), code('ASPECT_RATIO'));
+  const job = createSavedPrintJob(artwork, { frame: printFrame(), request: square, inspect });
+  const exposed = job.getCapabilities();
+  exposed.artist.rendering.aspectRatios = [1];
+  assert.deepEqual(job.getCapabilities(), discovery.getCapabilities());
+  assert.deepEqual(job.validate(), discovery.validateRequest(square));
+  assert.equal((await job.screen()).screening.status, 'unsupported');
+  assert.equal(inspections, 0);
+  assert.throws(() => createSavedPrintJob({ mode: 'studio' }, {
+    frame: printFrame(), request: printRequest(), inspect
+  }), /registered by createModeExample/);
+});
+
+test('print jobs share inspector capacity until timed-out or cancelled work settles', async t => {
+  for (const stop of ['timeout', 'cancel']) await t.test(stop, async t => {
+    const { artwork, unregister } = createModeExample();
+    t.after(unregister);
+    const work = Promise.withResolvers(), started = Promise.withResolvers();
+    t.after(() => work.resolve(passedInspection()));
+    let active = 0, peak = 0, calls = 0;
+    const inspect = async () => {
+      active++; calls++; peak = Math.max(peak, active);
+      if (calls === 4) started.resolve();
+      try { return await work.promise; } finally { active--; }
+    };
+    const makeJob = (callback = inspect) => createSavedPrintJob(artwork, {
+      frame: printFrame(), request: printRequest(), inspect: callback
+    });
+    const controllers = Array.from({ length: 20 }, () => new AbortController());
+    const results = Promise.allSettled(controllers.map(controller => makeJob().screen({
+      timeout: stop === 'timeout' ? 200 : 5000, signal: controller.signal
+    })));
+    await started.promise;
+    // Let excess calls report BUSY before cancelling the four admitted calls.
+    await new Promise(resolve => setImmediate(resolve));
+    if (stop === 'cancel') controllers.slice(0, 4).forEach(controller => controller.abort());
+    const outcomes = await results;
+    assert.equal(outcomes.filter(r => r.status === 'rejected' && r.reason.code === 'BUSY').length, 16);
+    assert.equal(outcomes.filter(r => r.status === 'rejected' && r.reason.code === (stop === 'timeout' ? 'TIMEOUT' : 'CANCELLED')).length, 4);
+    assert.deepEqual({ active, peak, calls }, { active: 4, peak: 4, calls: 4 });
+    await assert.rejects(makeJob().screen(), code('BUSY'));
+    assert.equal((await makeJob(passedInspection).screen()).screening.status, 'supported');
+    work.resolve(passedInspection());
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(active, 0);
+    assert.equal((await makeJob().screen()).screening.status, 'supported');
+    assert.equal(calls, 5);
+  });
+});
+
+test('inspector failures release shared capacity', async t => {
+  const { artwork, unregister } = createModeExample();
+  t.after(unregister);
+  let calls = 0;
+  const inspect = () => {
+    calls++;
+    if (calls <= 2) throw new Error('sync failure');
+    if (calls <= 4) return Promise.reject(new Error('async failure'));
+    if (calls <= 6) return {};
+    return passedInspection();
+  };
+  const makeJob = () => createSavedPrintJob(artwork, { frame: printFrame(), request: printRequest(), inspect });
+  for (let i = 0; i < 6; i++) await assert.rejects(makeJob().screen(), /failure|Inspection must explicitly report/);
+  assert.equal((await makeJob().screen()).screening.status, 'supported');
+});

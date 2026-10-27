@@ -2,6 +2,12 @@ import { pathToFileURL } from 'node:url';
 import { createArtwork, fromRecipe } from '../../src/index.js';
 import { createCapabilities } from '../../src/capabilities.js';
 import { createDiscovery, registerDiscovery } from '../../src/discovery.js';
+import { data, fields } from '../../src/description-data.js';
+import { requireValue } from '../../src/errors.js';
+
+const artworkPolicies = new WeakMap();
+const activeInspections = new WeakMap();
+const MAX_INSPECTIONS = 4;
 
 // Synthetic workflow fixtures inspired by reported integration needs. These are
 // NOT Kepler's Dream source, artist-approved print limits, or print-quality tests.
@@ -49,6 +55,7 @@ export function createModeExample(mode = 'studio') {
   const discovery = createDiscovery({ schemaVersion: 'oriel-artwork/1.0',
     artwork: { id: artwork.id, version: artwork.version },
     capabilities: modeCapabilities(mode, EXAMPLE_ASPECT_RATIO) });
+  artworkPolicies.set(artwork, createCapabilities(discovery.getCapabilities()));
   // No commands are registered, even in studio. Local controls and remote
   // bridge operations are separate surfaces; discovery does not grant access.
   const unregister = registerDiscovery(artwork, discovery);
@@ -58,23 +65,47 @@ export function createModeExample(mode = 'studio') {
 export function createSavedPrintJob(artwork, { frame, request, inspect }) {
   if (artwork.mode !== 'studio') throw new Error('Printing is unavailable in this example mode');
   if (typeof inspect !== 'function') throw new Error('An artist-owned inspection callback is required');
+  const policy = artworkPolicies.get(artwork);
+  requireValue(policy, 'Use an artwork registered by createModeExample');
+  // Bound and validate caller data before recipe hooks, structuredClone, or reports.
+  const output = data(request, 8192);
+  const preflight = policy.validateRequest(output);
+  requireValue(!preflight.issues.some(issue => issue.code === 'INVALID_REQUEST'), 'Invalid print request', 'INVALID_REQUEST');
+  const savedFrame = data(frame, 8192);
+  fields(savedFrame, ['aspectRatio', 'cadence', 'elapsedSeconds'], 'frame');
+  requireValue(frameContract.validate(savedFrame), 'Invalid saved frame');
+  const capabilities = policy.getCapabilities();
+  for (const source of ['technical', 'artist']) {
+    const ratios = capabilities[source]?.rendering?.aspectRatios;
+    requireValue(!ratios || ratios.includes(savedFrame.aspectRatio), `Saved frame violates ${source} aspect ratios`, 'ASPECT_RATIO');
+  }
   // Bind evaluation to one saved composition, frame and output specification.
   // Later live parameter/playback changes cannot change what this job describes.
-  const job = { recipe: artwork.getRecipe({ context: frame }), request: structuredClone(request) };
-  const capabilities = modeCapabilities('studio', job.recipe.context.data.aspectRatio);
+  const job = { recipe: artwork.getRecipe({ context: savedFrame }), request: output };
   const provider = createCapabilities(capabilities, { evaluate: async (output, { signal }) => {
-    const checks = await inspect({ recipe: structuredClone(job.recipe), request: output, signal });
-    const names = ['grain', 'lineWeight', 'colour'];
-    if (!checks || names.some(name => typeof checks[name] !== 'boolean')) throw new Error('Inspection must explicitly report grain, lineWeight and colour checks');
-    const failed = names.filter(name => !checks[name]);
-    return { supported: failed.length === 0, reasons: failed.map(name => `${name}: not passed for this saved frame and output`) };
+    // Job-specific evaluator closures must share the expensive inspector's budget.
+    requireValue((activeInspections.get(inspect) ?? 0) < MAX_INSPECTIONS, 'Too many active inspections', 'BUSY');
+    activeInspections.set(inspect, (activeInspections.get(inspect) ?? 0) + 1);
+    try {
+      const checks = await inspect({ recipe: structuredClone(job.recipe), request: output, signal });
+      const names = ['grain', 'lineWeight', 'colour'];
+      if (!checks || names.some(name => typeof checks[name] !== 'boolean')) throw new Error('Inspection must explicitly report grain, lineWeight and colour checks');
+      const failed = names.filter(name => !checks[name]);
+      return { supported: failed.length === 0, reasons: failed.map(name => `${name}: not passed for this saved frame and output`) };
+    } finally {
+      // Timeout/cancellation cannot release capacity while inspection still runs.
+      const remaining = activeInspections.get(inspect) - 1;
+      if (remaining) activeInspections.set(inspect, remaining);
+      else activeInspections.delete(inspect);
+    }
   } });
   return {
     getJob: () => structuredClone(job),
     getCapabilities: provider.getCapabilities,
     validate: () => provider.validateRequest(job.request),
     async screen(options) {
-      return { job: structuredClone(job), screening: await provider.evaluateRequest(job.request, options),
+      const screening = await provider.evaluateRequest(job.request, options);
+      return { job: structuredClone(job), screening,
         printApproval: 'not-granted' };
     }
   };

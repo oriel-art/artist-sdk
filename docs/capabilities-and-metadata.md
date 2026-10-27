@@ -278,6 +278,27 @@ object, or output request cannot change the job being screened. Creating another
 composition/frame/output requires a new job and a new evaluation; a result must
 not be reused as blanket approval for another seed, frame, size, or print process.
 
+The helper accepts artworks created by `createModeExample()` and preserves the
+capability snapshot registered for that artwork. Saved frame ratios must belong
+to both the technical and artist declarations; frame input cannot create new
+permissions. This fixed-composition example rejects a different frame ratio with
+`ASPECT_RATIO`. Supporting other compositions requires an artist-defined policy
+and consistent discovery for those compositions. Output requests outside declared
+limits still produce an `unsupported` result without calling the inspector.
+
+Request and frame inputs are copied through the SDK's bounded, data-only snapshot
+utility before recipe creation or reporting, with an 8 KiB budget each. Oversized
+or unsafe input throws `LIMIT` or `INVALID_INPUT`; malformed request fields throw
+`INVALID_REQUEST` at job creation. Accessors and `toJSON` hooks are not invoked.
+
+The example also limits inspection to four active calls across all jobs sharing
+the same `inspect` function in one loaded module. Excess calls fail with `BUSY`
+without queuing. Timeout or cancellation does not free an inspection slot until
+the underlying work settles; successful and failed inspections both release it.
+Reuse one stable inspector function for each shared rendering resource. Separate
+functions, module copies, and processes need a host-level resource budget; use
+terminable workers for work that does not cooperate with cancellation.
+
 ```js
 const job = createSavedPrintJob(studioArtwork, {
   frame: { elapsedSeconds: 12.5, cadence: 1, aspectRatio: 1512 / 803 },
