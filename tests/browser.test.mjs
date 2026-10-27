@@ -29,6 +29,43 @@ async function open(t, path = '/examples/webgl/', viewport = { width: 1400, heig
   return page;
 }
 
+test('static discovery and runtime bridge queries return the same data without changing artwork state', async t => {
+  const page = await open(t, '/examples/host/');
+  const result = await page.evaluate(async () => {
+    const frame = document.querySelector('iframe');
+    const art = frame.contentWindow.pilot.art;
+    const { parseDiscovery, createDiscovery, registerDiscovery } = await import('/src/discovery.js');
+    const { connectArtwork } = await import('/src/bridge.js');
+    const staticData = parseDiscovery(await (await fetch('/examples/discovery/artwork.json')).text());
+    // This test opts the existing pilot into discovery with its own identity.
+    staticData.artwork = { id: art.id, version: art.version };
+    const before = art.getRecipe();
+    const unregister = registerDiscovery(art, createDiscovery(staticData));
+    window.bridge.close();
+    const client = await connectArtwork(frame, { origin: location.origin });
+    const manifest = client.manifest;
+    const discovered = (await client.query('discovery')).result;
+    const metadata = (await client.query('metadata')).result;
+    const capabilities = (await client.query('capabilities')).result;
+    const provenance = (await client.query('provenance')).result;
+    discovered.metadata.project.title.en = 'Host changed its copy';
+    const unchanged = (await client.query('discovery')).result;
+    unregister();
+    let removed;
+    try { await client.query('discovery'); } catch (error) { removed = error.code; }
+    client.close();
+    return { staticData, unchanged, metadata, capabilities, provenance, before, after: art.getRecipe(),
+      declared: ['discovery', 'metadata', 'capabilities', 'provenance'].every(name => name in manifest.queries), removed };
+  });
+  assert.equal(result.declared, true);
+  assert.deepEqual(result.unchanged, result.staticData);
+  assert.deepEqual(result.metadata, result.staticData.metadata);
+  assert.deepEqual(result.capabilities, result.staticData.capabilities);
+  assert.deepEqual(result.provenance, result.staticData.metadata.provenance);
+  assert.deepEqual(result.before, result.after);
+  assert.equal(result.removed, 'UNSUPPORTED');
+});
+
 test('real WebGL export is reproducible and preserves live state, dimensions, time and uniforms', async t => {
   const page = await open(t, '/');
   assert.equal(new URL(page.url()).pathname, '/examples/webgl/');

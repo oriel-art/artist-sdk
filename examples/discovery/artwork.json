@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "oriel-artwork/1.0",
+  "artwork": {
+    "id": "tidal-lines",
+    "version": "1.0.0"
+  },
+  "metadata": {
+    "schemaVersion": "1.0",
+    "defaultLocale": "en",
+    "project": {
+      "id": "tidal-lines",
+      "title": {
+        "en": "Tidal Lines",
+        "fr": "Lignes de marée"
+      },
+      "creators": [
+        {
+          "name": "Example Artist",
+          "references": [
+            {
+              "kind": "identity",
+              "uri": "https://example.com/artist"
+            }
+          ]
+        }
+      ],
+      "description": {
+        "en": "A study of seeded lines and changing tides.",
+        "fr": "Une étude de lignes et de marées."
+      },
+      "medium": "Generative software",
+      "date": "2026-10",
+      "artistStatement": "Each seed captures a different rhythm.",
+      "license": {
+        "name": "All rights reserved"
+      }
+    },
+    "edition": {
+      "id": "tidal-lines-7",
+      "number": 7,
+      "total": 100
+    },
+    "provenance": [
+      {
+        "kind": "archive",
+        "uri": "https://example.com/archive/tidal-lines",
+        "label": "Illustrative archive reference"
+      }
+    ]
+  },
+  "capabilities": {
+    "schemaVersion": "1.0",
+    "technical": {
+      "rendering": {
+        "width": {
+          "min": 64,
+          "max": 8192
+        },
+        "height": {
+          "min": 64,
+          "max": 8192
+        },
+        "maxPixels": 16777216,
+        "formats": [
+          "image/png"
+        ],
+        "aspectRatios": [
+          1,
+          1.5
+        ]
+      },
+      "print": {
+        "width": {
+          "min": 1,
+          "max": 24
+        },
+        "height": {
+          "min": 1,
+          "max": 24
+        },
+        "dpi": {
+          "min": 72,
+          "max": 600
+        },
+        "tiling": false
+      },
+      "interaction": {
+        "pointer": true
+      },
+      "animation": {
+        "supported": true,
+        "pause": true,
+        "seek": false
+      },
+      "state": {
+        "save": true,
+        "restore": true,
+        "deterministic": true
+      }
+    },
+    "artist": {
+      "rendering": {
+        "aspectRatios": [
+          1
+        ]
+      },
+      "print": {
+        "dpi": {
+          "min": 150,
+          "max": 300
+        }
+      },
+      "notes": "Square compositions; print at 150–300 DPI."
+    },
+    "evaluation": "required"
+  }
+}

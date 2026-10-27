@@ -3,6 +3,9 @@ import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const entries = {
+  'capabilities': "export * from './src/capabilities.js'",
+  'metadata': "export * from './src/metadata.js'",
+  'discovery': "export * from './src/discovery.js'",
   'randomness': "export { createRandom } from './src/random.js'",
   'parameters + recipes': "export { createArtwork, fromRecipe, restoreRecipe } from './src/index.js'",
   'browser helpers': "export * from './src/browser.js'",

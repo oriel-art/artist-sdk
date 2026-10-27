@@ -22,6 +22,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run test:types
+      - run: npm run test:packages
       - run: google-chrome --version
       - run: npm run test:browser
       - run: npm run size
