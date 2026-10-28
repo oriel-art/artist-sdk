@@ -5,7 +5,7 @@ import { getCapabilities, createCapabilities, validateRequest, evaluateRequest }
 import { getMetadata, getProvenanceReferences, createMetadata, resolveLocalizedText } from '../src/metadata.js';
 import { parseDiscovery, serializeDiscovery, createDiscovery, registerDiscovery } from '../src/discovery.js';
 import { createArtwork } from '../src/index.js';
-import { data } from '../src/description-data.js';
+import { data, parseJSONData } from '../src/description-data.js';
 
 const example = JSON.parse(await readFile(new URL('../examples/discovery/artwork.json', import.meta.url), 'utf8'));
 const caps = () => structuredClone(example.capabilities);
@@ -20,9 +20,49 @@ test('incremental JSON budgets match UTF-8 serialization at exact boundaries', (
     { nested: [1, { text: 'é', same: 'é' }, false] }];
   for (const value of values) {
     const bytes = new TextEncoder().encode(JSON.stringify(value)).length;
-    assert.deepEqual(data(value, bytes), value);
+    assert.deepEqual(data(value, bytes), JSON.parse(JSON.stringify(value)));
     assert.throws(() => data(value, bytes - 1), code('LIMIT'));
   }
+});
+
+test('bounded JSON ingress rejects oversized text before parsing, including UTF-8 expansion', t => {
+  const original = JSON.parse;
+  let calls = 0;
+  t.mock.method(JSON, 'parse', (...args) => { calls++; return original(...args); });
+  for (const text of [' '.repeat(20481), JSON.stringify('é'.repeat(11000))]) {
+    assert.throws(() => parseJSONData(text, 20480), code('LIMIT'));
+  }
+  assert.equal(calls, 0);
+  assert.deepEqual(parseJSONData('{"zero":-0,"text":"é"}', 24), { zero: 0, text: 'é' });
+  assert.equal(calls, 1);
+  assert.throws(() => parseJSONData('{broken', 100), code('INVALID_INPUT'));
+});
+
+test('wide enumerable objects fail before explicit own-key materialization', t => {
+  const wide = {};
+  for (let i = 0; i < 100000; i++) wide[`key${i}`] = 0;
+  const ownKeys = Reflect.ownKeys;
+  let enumeratedWide = false;
+  t.mock.method(Reflect, 'ownKeys', value => {
+    if (value === wide) enumeratedWide = true;
+    return ownKeys(value);
+  });
+  assert.throws(() => data(wide, 8192), code('LIMIT'));
+  assert.equal(enumeratedWide, false);
+});
+
+test('enumeration hardening still rejects hidden, symbol, unsafe, accessor and sparse data', () => {
+  let invoked = 0;
+  const hidden = Object.defineProperty({}, 'hidden', { value: 1 });
+  const symbol = { [Symbol('hidden')]: 1 };
+  const getter = Object.defineProperty({}, 'value', { enumerable: true, get() { invoked++; return 1; } });
+  const array = [1]; Object.defineProperty(array, 'hidden', { value: 2 });
+  for (const value of [hidden, symbol, getter, array, [, 1], JSON.parse('{"__proto__":1}')]) {
+    assert.throws(() => data(value), code('INVALID_INPUT'));
+  }
+  assert.equal(invoked, 0);
+  const plain = Object.assign(Object.create(null), { value: 1 });
+  assert.deepEqual(data(plain), { value: 1 });
 });
 
 test('oversized strings, keys and repeated values fail before visiting later fields', () => {

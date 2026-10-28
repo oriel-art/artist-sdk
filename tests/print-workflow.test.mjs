@@ -258,3 +258,37 @@ test('capture rejections preserve actionable sources, paths and constraint codes
   const wrongFrame = captured(); wrongFrame.frame.aspectRatio = 3;
   assert.throws(() => workflow({ capture: () => wrongFrame }).captureJob(input()), error => error.issues[0].path === 'capture.frame.aspectRatio');
 });
+
+test('external print JSON is bounded before parsing or capture and shares policy validation', t => {
+  const flow = workflow();
+  assert.deepEqual(flow.captureJob(JSON.stringify(input())).getJob(), flow.captureJob(input()).getJob());
+  const huge = input(); huge.specification.extensions = Object.fromEntries(Array.from({ length: 10000 }, (_, i) => [`k${i}`, 0]));
+  const text = JSON.stringify(huge);
+  let parsed = 0, captures = 0;
+  const original = JSON.parse;
+  t.mock.method(JSON, 'parse', (...args) => { parsed++; return original(...args); });
+  const guarded = workflow({ capture: () => { captures++; return captured(); } });
+  assert.throws(() => guarded.captureJob(text), code('LIMIT'));
+  assert.equal(parsed, 0); assert.equal(captures, 0);
+  assert.throws(() => guarded.captureJob('{broken'), code('INVALID_INPUT'));
+  assert.throws(() => guarded.captureJob('{"id":"x","request":{},"specification":{},"extra":1}'), code('INVALID_INPUT'));
+  const bad = input(); bad.request.width = 99999;
+  assert.throws(() => guarded.captureJob(JSON.stringify(bad)), code('UNSUPPORTED'));
+  // Raw text can fit the envelope while a component exceeds its own 8 KiB budget.
+  const component = input(); component.specification.notes = 'x'.repeat(9000);
+  assert.throws(() => guarded.captureJob(JSON.stringify(component)), code('LIMIT'));
+  assert.equal(captures, 0);
+});
+
+test('signed zero is normalized before inspection and survives report JSON replay unchanged', async () => {
+  const snapshot = captured(); snapshot.uniforms.offset = -0;
+  snapshot.frame.elapsedSeconds = -0; snapshot.recipe.parameters = { zero: -0 };
+  const candidate = input(); candidate.specification.extensions = { 'art.test': { zero: -0 } };
+  let inspected;
+  const job = workflow({ capture: () => snapshot, inspect: record => { inspected = record; return passed(); } }).captureJob(candidate);
+  const report = await job.screen();
+  assert.equal(Object.is(snapshot.uniforms.offset, -0), true); // Caller state is untouched.
+  assert.equal(Object.is(inspected.capture.uniforms.offset, -0), false);
+  assert.deepEqual(inspected, JSON.parse(JSON.stringify(report)).job);
+  assert.deepEqual(report, JSON.parse(JSON.stringify(report)));
+});

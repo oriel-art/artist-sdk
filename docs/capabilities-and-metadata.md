@@ -423,6 +423,8 @@ nonfinite numbers, cycles, sparse arrays, and prototype-pollution keys. It never
 calls `toJSON`. Inputs must be ordinary data; JavaScript proxies are not an
 untrusted-data transport or a sandbox. Unknown fields are rejected. Provider
 inputs are snapshotted; every returned description is an independent copy.
+Numeric signed zero is normalized to positive zero so snapshots and persisted
+JSON agree. In particular, print inspectors receive normalized captured uniforms.
 
 Descriptions are limited to 32 KiB of compact UTF-8 JSON each; discovery text
 and envelopes to 48 KiB; requests and evaluator decisions to 8 KiB. Data is also
@@ -434,6 +436,13 @@ The JSON byte budget is charged during traversal, including keys, escaped contro
 characters, lone surrogates, punctuation, and every occurrence of repeated values.
 Oversized input is rejected before full serialization or UTF-8 buffer allocation.
 Discovery text receives a length check before its bounded UTF-8 size check.
+These quotas bound accepted snapshots, not all engine allocation or enumeration
+work on a pre-existing object. Wide enumerable objects are rejected before the
+copier explicitly materializes all keys, but engines may allocate enumeration
+state and hidden/symbol keys still require checking. Bound external bytes before
+parsing or constructing objects. Use bounded discovery JSON text and the print
+workflow's 20 KiB raw-JSON candidate path; bound transport/file reads as well.
+Object overloads are intended for trusted in-process data.
 
 Identity verification, wallet authentication, identity attestations, blockchain
 indexing, and an Oriel identity registry are out of scope. There is no publishing,

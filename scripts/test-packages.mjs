@@ -38,10 +38,10 @@ try {
     printPolicy.technical.print = { width: { min: 1, max: 1 }, height: { min: 1, max: 1 }, dpi: { min: 100, max: 100 } };
     const workflow = createPrintWorkflow({ artwork, capabilities: printPolicy,
       capture: art => ({ recipe: art.getRecipe(), frame: { aspectRatio: 1 } }) });
-    const job = workflow.captureJob({ id: 'fixture', request: { width: 100, height: 100, format: 'image/png',
+    const job = workflow.captureJob(JSON.stringify({ id: 'fixture', request: { width: 100, height: 100, format: 'image/png',
       print: { width: 1, height: 1, unit: 'in', dpi: 100 } }, specification: {
         paper: 'Fixture', printer: 'Fixture', colourProfile: 'Fixture', renderingIntent: 'perceptual', grain: 'Fixture', lineWeight: 'Fixture'
-      } });
+      } }));
     assert.equal((await job.screen()).screening.status, 'requires-evaluation');
   `);
   run(process.execPath, ['consumer.mjs'], directory);

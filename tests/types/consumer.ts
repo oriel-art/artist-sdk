@@ -42,6 +42,7 @@ const printWorkflow = createPrintWorkflow({ artwork: { id: 'demo', version: '1',
   inspect: async (job, { signal }) => ({ grain: { passed: !signal.aborted }, lineWeight: { passed: true },
     colour: { status: 'not-assessed', notes: job.specification.colourProfile } }) });
 const printJob = printWorkflow.captureJob({ id: 'proof-1', request: printRequest, specification: printSpecification });
+printWorkflow.captureJob(JSON.stringify({ id: 'proof-json', request: printRequest, specification: printSpecification }));
 const printReport = await printJob.screen();
 const approval: 'not-granted' = printReport.printApproval;
 void approval;

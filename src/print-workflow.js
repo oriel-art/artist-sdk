@@ -1,9 +1,10 @@
 import { createCapabilities } from './capabilities.js';
-import { data, fields, list, positive, text } from './description-data.js';
+import { data, fields, list, parseJSONData, positive, text } from './description-data.js';
 import { ArtworkError, identifier, object, requireValue, synchronous } from './errors.js';
 
 export const PRINT_JOB_VERSION = 'oriel-print-job/1.0';
 const MAX_JOB_BYTES = 131072;
+const MAX_INPUT_BYTES = 20480;
 const activeInspections = new WeakMap();
 const checkNames = ['grain', 'lineWeight', 'colour'];
 
@@ -117,7 +118,13 @@ export function createPrintWorkflow({ artwork, capabilities, capture, inspect })
 
   return Object.freeze({
     getCapabilities: policy.getCapabilities,
-    captureJob({ id, request, specification }) {
+    captureJob(input) {
+      // External inputs use bounded raw JSON; object callers own their ingress limits.
+      if (typeof input === 'string') {
+        input = parseJSONData(input, MAX_INPUT_BYTES);
+        fields(input, ['id', 'request', 'specification'], 'print job input');
+      }
+      const { id, request, specification } = input;
       identifier(id);
       // Validate data and policy before any artist code or large snapshot copies.
       const output = data(request, 8192);

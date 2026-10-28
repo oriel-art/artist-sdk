@@ -67,6 +67,35 @@ public/collector print support undeclared until it is appropriate to advertise.
 If print support is absent, `captureJob()` rejects without invoking capture.
 The library does not invent print support to make a workflow pass.
 
+### External input boundary
+
+For external print-job candidates, pass **raw JSON text** containing
+`{ id, request, specification }` to `workflow.captureJob(text)`. The SDK rejects
+text over **20 KiB of UTF-8 before `JSON.parse`**, then applies the existing
+8 KiB component limits, structural checks and capability policy. Unknown
+top-level fields are rejected. This is a candidate-input path, not a saved-report
+import or automatic recipe-restoration API.
+
+Also enforce a limit while reading the transport or file, before constructing
+the string. For a browser File containing a candidate:
+
+```js
+if (file.size > 20 * 1024) throw new RangeError('Print candidate exceeds 20 KiB');
+const job = workflow.captureJob(await file.text());
+```
+
+For HTTP, limit the decoded request body while reading it; a claimed
+`Content-Length` alone is insufficient. Do not call an unbounded `.json()` first,
+or stringify an already oversized object to reach the string API. Apply ingress
+limits to external policy/inspection data too.
+
+The object overload is retained for trusted in-process inputs. Its quotas bound
+accepted snapshots, not all CPU/memory needed to enumerate an arbitrary existing
+object. Wide enumerable objects now fail before the copier explicitly creates
+a complete key array, but engines may allocate their own enumeration state;
+objects with many hidden/symbol keys still require a complete key check. Objects
+and proxies are therefore not a substitute for a bounded external transport.
+
 ### Structured print conditions
 
 The original `paper`, `printer`, `colourProfile`, `grain`, `lineWeight` and
@@ -116,6 +145,12 @@ recent parameter edits, choose explicitly whether the job describes the visible
 frame or a newly resolved composition. The SDK cannot infer that relationship.
 Shader/source versions and any other restoration requirements can be included
 in recipe/frame data under the integration's own versioned contract.
+
+All data-only snapshots normalize numeric `-0` to positive `0`, including nested
+recipe, frame, uniform and specification values. Inspectors receive the normalized
+values, so JSON persistence does not silently change the screened inputs. Caller
+objects are not mutated. If a renderer relies on zero's sign, encode that sign
+explicitly in its versioned capture contract and restore it in the renderer.
 
 Frame ratios must appear in both declared ratio lists where those lists exist.
 Use the policy's original numeric ratio, not the ratio of rounded output pixels.
@@ -264,6 +299,7 @@ included in this pilot.
 
 | Boundary | Limit / behavior |
 | --- | --- |
+| External candidate JSON text | 20 KiB UTF-8 before parsing; caller also bounds transport/file reads |
 | Request and specification | 8 KiB each; validated before capture |
 | Capture | 64 KiB; bounded data-only snapshot |
 | Complete job | 128 KiB; maximum depth 20 and 5,000 nodes |

@@ -38,6 +38,10 @@ remain outside the SDK. See `dist/print-workflow-pilot.md` for the API and trial
 Structured media/profile/border settings and bounded extensions are optional.
 Checks distinguish `passed`, `failed` and `not-assessed`; legacy `passed` booleans
 remain accepted. Constraint rejection errors expose detailed `issues`.
+For external candidates, `captureJob(jsonText)` checks a 20 KiB UTF-8 envelope
+before parsing; callers must also bound transport reads. Object inputs remain
+for trusted in-process use. Captured signed zero is normalized before screening
+and persistence to keep JSON replay consistent.
 
 The full contract and discovery integration are included in `dist/guide.md`
 (maintained in the repository's `docs/capabilities-and-metadata.md`). Sources are under `src/` at the

@@ -83,6 +83,7 @@ export function evaluateRequest(description: Capabilities, request: RenderReques
 export function createCapabilities(description: Capabilities, options?: { evaluate?: RequestEvaluator }): CapabilitiesProvider;
 
 export const PRINT_JOB_VERSION: 'oriel-print-job/1.0';
+/** Finite JSON data; signed zero is normalized to positive zero before screening/persistence. */
 export type PrintJSON = null | boolean | number | string | PrintJSON[] | { [key: string]: PrintJSON };
 export interface PrintArtwork { readonly id: string; readonly version: string }
 export interface PrintSpecification {
@@ -146,8 +147,10 @@ export interface PrintJob {
 }
 export interface PrintWorkflow {
   getCapabilities(): Capabilities;
-  /** Captures synchronously; invalid/unsupported requests throw before capture. */
-  captureJob(input: { id: string; request: PrintRequest; specification: PrintSpecification }): PrintJob;
+  /** Captures synchronously. External data: raw JSON text limited to 20 KiB before parsing;
+   * also bound transport reads. Object inputs are for trusted in-process callers and do
+   * not provide a hard bound on the engine's enumeration cost. Invalid requests throw. */
+  captureJob(input: string | { id: string; request: PrintRequest; specification: PrintSpecification }): PrintJob;
 }
 export function createPrintWorkflow<Artwork extends PrintArtwork>(options: {
   artwork: Artwork;
