@@ -139,3 +139,26 @@ print proof, or new artist acceptance result is claimed by these changes.
 
 See the [capabilities and metadata guide](capabilities-and-metadata.md) for the
 rounding policy, mode scope, reproducibility, and saved-frame print workflow.
+
+## Reported print-workflow pilot trial
+
+The team reports testing `createPrintWorkflow()` on Chrome 156.0.8078.48 /
+ANGLE SwiftShader, WebGL 1. It replaced copied snapshot/concurrency plumbing.
+A 2048 × 1088 export matched replay from the saved job byte-for-byte despite live
+parameter/time changes; screening preserved those later edits. They also report
+pre-capture constraint rejection, unchanged collector discovery, shared inspector
+limits, timeout/cancellation capacity retention and failure recovery. Their
+66 upstream unit tests, 27 browser tests, TypeScript/package checks and separate
+Kepler tests passed. These are reported results, not an independent reproduction
+of artwork source in this repository.
+
+The follow-up adds optional structured media/profile/BPC/border/colour-criterion
+fields and bounded integration extensions, distinct `passed`/`failed`/
+`not-assessed` checks with legacy boolean compatibility, detailed rejection
+issues, and documented replay/source-identity/image-linking patterns. See the
+[print workflow pilot guide](print-workflow-pilot.md).
+
+The 8 × 4.25 inch / 256 DPI matte cotton-rag/pigment-inkjet candidate is
+provisional. Exact printer, stock, profile and measurable criteria remain
+unresolved. No physical proof was produced; quality remains unassessed and
+approval remains `not-granted`. Software screening does not change that status.

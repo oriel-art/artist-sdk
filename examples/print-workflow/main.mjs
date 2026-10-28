@@ -18,9 +18,9 @@ async function inspectSavedFrame(job, { signal }) {
   // Replace with isolated rendering of job.capture at job.request dimensions,
   // then artist-owned checks against job.specification. No actual render here.
   return {
-    grain: { passed: false, notes: 'Fixture: grain comparison has not been performed.' },
-    lineWeight: { passed: false, notes: 'Fixture: line-weight inspection has not been performed.' },
-    colour: { passed: false, notes: 'Fixture: no colour-managed output or proof has been assessed.' }
+    grain: { status: 'not-assessed', notes: 'Fixture: grain comparison has not been performed.' },
+    lineWeight: { status: 'not-assessed', notes: 'Fixture: line-weight inspection has not been performed.' },
+    colour: { status: 'not-assessed', notes: 'Fixture: no colour-managed output or proof has been assessed.' }
   };
 }
 
@@ -38,6 +38,8 @@ const job = workflow.captureJob({ id: 'proof-candidate-1',
     renderingIntent: 'relative-colorimetric',
     grain: 'Compare against the artist-defined grain reference at physical size',
     lineWeight: 'Compare continuity and visibility against the artist-defined reference',
+    media: { finish: 'matte', settings: { candidateOnly: true } },
+    extensions: { 'art.oriel.print-pilot.v1': { unresolved: ['printer', 'stock', 'iccProfile', 'criteria'] } },
     notes: 'Fixture only; physical proof decisions are recorded outside the SDK.'
   } });
 

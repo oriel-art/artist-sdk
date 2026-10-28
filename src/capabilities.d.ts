@@ -95,6 +95,17 @@ export interface PrintSpecification {
   grain: string;
   lineWeight: string;
   notes?: string;
+  media?: { manufacturer?: string; stock?: string; finish?: string; weightGsm?: number;
+    inkSet?: string; settings?: { [key: string]: PrintJSON } };
+  /** SHA-256 of the actual ICC file bytes, lowercase hex; descriptive, not verified by the SDK. */
+  iccProfile?: { name: string; sha256: string };
+  blackPointCompensation?: boolean;
+  /** Borders outside the image area. request.print dimensions always describe the image. */
+  borders?: { unit: 'in' | 'cm' | 'mm'; top: number; right: number; bottom: number; left: number };
+  /** Artist/printer-defined maximum criteria. Measurement remains the inspector's job. */
+  colourCriteria?: { metric: string; maximum: number; unit: string; method: string }[];
+  /** Use namespaced keys for integration-owned data; shares the 8 KiB specification budget. */
+  extensions?: { [namespace: string]: PrintJSON };
 }
 export type PrintRequest = RenderRequest & { print: NonNullable<RenderRequest['print']> };
 export interface PrintCapture {
@@ -114,8 +125,12 @@ export interface PrintJobRecord {
   specification: PrintSpecification;
   capture: PrintCapture;
 }
-export interface PrintCheck { passed: boolean; notes?: string }
-export interface PrintChecks { grain: PrintCheck; lineWeight: PrintCheck; colour: PrintCheck }
+/** Legacy input: false means failed; use PrintAssessment for unassessed checks. */
+export interface PrintCheck { passed: boolean; status?: never; notes?: string }
+export interface PrintAssessment { status: 'passed' | 'failed' | 'not-assessed'; passed?: never; notes?: string }
+export interface PrintChecks { grain: PrintCheck | PrintAssessment; lineWeight: PrintCheck | PrintAssessment; colour: PrintCheck | PrintAssessment }
+/** Constraint rejection errors retain code/message and expose isolated validation issues. */
+export interface PrintConstraintError extends Error { code: string; issues: ValidationIssue[] }
 export type PrintInspector = (job: PrintJobRecord, context: { signal: AbortSignal }) => PrintChecks | Promise<PrintChecks>;
 export interface PrintScreeningReport {
   job: PrintJobRecord;

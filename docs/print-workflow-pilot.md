@@ -14,8 +14,8 @@ this saved job. Every report retains `printApproval: 'not-granted'`.
 
 Run the complete fixture with `node examples/print-workflow/main.mjs`. All print
 limits and specifications in that example are illustrative, not approved Kepler
-specifications. Its checks deliberately fail because no physical criteria have
-been evaluated.
+specifications. Its checks report `not-assessed`, so screening remains
+`requires-evaluation` until physical criteria have been evaluated.
 
 ## Integration
 
@@ -67,6 +67,36 @@ public/collector print support undeclared until it is appropriate to advertise.
 If print support is absent, `captureJob()` rejects without invoking capture.
 The library does not invent print support to make a workflow pass.
 
+### Structured print conditions
+
+The original `paper`, `printer`, `colourProfile`, `grain`, `lineWeight` and
+`renderingIntent` fields remain required for compatibility and human-readable
+descriptions. Optional structured fields preserve the settings behind those
+descriptions; they share the specification's existing 8 KiB total budget.
+
+| Field | Structure and meaning |
+| --- | --- |
+| `media` | Optional `manufacturer`, `stock`, `finish`, `inkSet` strings; positive `weightGsm`; `settings` JSON object for driver settings |
+| `iccProfile` | `{ name, sha256 }`; SHA-256 of the exact ICC file bytes as 64 lowercase hex characters |
+| `blackPointCompensation` | Explicit boolean; omission means unspecified, not false |
+| `borders` | `{ unit, top, right, bottom, left }`; unit is `in`, `cm` or `mm`, all sizes finite and nonnegative |
+| `colourCriteria` | Nonempty array of `{ metric, maximum, unit, method }`; maximum is finite and nonnegative |
+| `extensions` | JSON object; use namespaced keys such as `art.kepler.print.v1` for integration-specific conditions or criteria |
+
+Borders describe space **outside the image area**. `request.print.width/height`
+continue to describe the image and determine its pixel/DPI relationship. Borders
+do not add pixels or silently change those dimensions. Sheet size, printable
+area and margin feasibility must be checked by the inspector/printer separately.
+
+The SDK validates structure, not whether a driver supports a setting, a profile
+is correct, or a measurement passes a criterion. The inspector must use these
+conditions, verify profile bytes when supplied, and record its evidence. Keep
+the descriptive profile label consistent with `iccProfile`. Do not invent a hash
+or numerical colour threshold when the profile or acceptance method is unresolved;
+omit those optional fields and return `not-assessed`. The same applies to
+unspecified black-point compensation and border settings. Richer colour metrics
+can use an integration-owned schema inside `extensions`.
+
 ### Capture contract
 
 The callback receives the artwork and isolated `{ request, specification }`
@@ -105,15 +135,23 @@ Return explicit outcomes for all three checks:
 
 ```js
 return {
-  grain: { passed: grainPassed, notes: grainEvidence },
-  lineWeight: { passed: lineWeightPassed, notes: lineWeightEvidence },
-  colour: { passed: colourPassed, notes: colourEvidence }
+  grain: { status: 'passed', notes: grainEvidence },
+  lineWeight: { status: 'failed', notes: lineWeightEvidence },
+  colour: { status: 'not-assessed', notes: 'Profile and measurement conditions remain unresolved.' }
 };
 ```
 
-Use `false` when a criterion has failed or has not yet been checked, with notes
-explaining which. All three must pass for `supported`; omissions and malformed
-results throw. Notes are optional descriptive text, not a verification system.
+All three must be `passed` for `supported`. Any `failed` check produces
+`unsupported`; otherwise any `not-assessed` check produces `requires-evaluation`.
+Pending checks retain `NOT_ASSESSED` issues with paths such as `checks.colour`,
+including when another failed check makes the overall result unsupported.
+Omissions, unknown statuses and malformed results throw. Notes are optional
+descriptive text, not a verification system.
+
+Legacy `{ passed: true/false }` checks still work and retain their original report
+shape. `false` means failed; it cannot distinguish an unperformed assessment.
+Migrate unassessed checks to `{ status: 'not-assessed' }`. Supply exactly one of
+`status` or `passed` on each check; mixing them is rejected, even if they agree.
 Without an inspector, validation and screening return `requires-evaluation`,
 even if the input policy marks generic runtime evaluation optional.
 
@@ -131,6 +169,93 @@ On reopening, use the artist's loader with `capture.recipe`, `capture.frame` and
 `capture.uniforms` together. There is no automatic record import or restoration
 API in this pilot; validate imported data and recheck the current trusted policy
 before creating a new job. An imported record is not authority to print.
+
+### Detailed rejection issues
+
+Constraint rejection errors retain their existing `code` and `message` and now
+include an isolated `issues` array using the standard `{ source, code, path,
+message }` shape. This applies to capability preflight, malformed request fields,
+missing print dimensions and captured-ratio/output disagreement. For example,
+an oversized request can report `technical / PIXEL_LIMIT / width` alongside an
+`artist / OUT_OF_RANGE / print.dpi` issue.
+
+```js
+try {
+  const job = workflow.captureJob(candidate);
+  // Continue with this saved job.
+} catch (error) {
+  if (Array.isArray(error.issues)) {
+    showConstraintIssues(error.issues); // Render messages as text.
+  } else {
+    showCaptureError(error); // Unsafe data, byte limits or artist callback errors.
+  }
+}
+```
+
+### Replay and image-linking pattern
+
+Use an integration-owned versioned descriptor inside `capture.frame`, alongside
+the time/cadence/aspect fields. For example, `frame.replay` can contain:
+
+```js
+{
+  contract: { id: 'kepler-print-replay', version: '1' },
+  renderer: { id: rendererId, version: rendererVersion },
+  source: { revision: sourceRevision, sha256: sourceBundleDigest },
+  sdkCommit,
+  environment: { browser: browserBuild, backend: rendererBackend }
+}
+```
+
+These are integration-supplied values, not verified SDK claims. Define which
+source bundle is hashed, including shader source and relevant assets, and how
+it is built. The descriptor does not embed executable code or authorize loading
+an arbitrary recorded URL.
+
+For a replay, the integration should:
+
+1. Bound imported file sizes before reading, then validate the report/recipe/frame
+   schemas, units, uniform types and artwork identity using trusted local contracts.
+2. Compare the recorded replay contract, renderer version and source digest with
+   the installed renderer and trusted build artifacts. Reject unsupported versions
+   or explicitly report migration; do not silently claim an exact replay.
+3. Recheck current trusted capabilities and device capacity. Never treat a policy
+   embedded in an imported record as permission or a resource budget.
+4. Restore recipe, frame and uniforms into an isolated renderer. Check that they
+   describe the same composition, including seed, resolved parameters, cadence,
+   elapsed time and aspect ratio. Reapply the recorded print settings explicitly.
+5. Compare output under the recorded environment where available. Byte equality
+   there is evidence for that environment, not a guarantee across devices.
+
+Link the exact exported image and exact saved report bytes with a separate
+sidecar index. Keeping the index separate avoids a self-referential report hash.
+For browsers with Web Crypto, this integration helper hashes bounded blobs:
+
+```js
+async function sha256(blob, maxBytes) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || blob.size > maxBytes) {
+    throw new RangeError('Artifact exceeds the integration byte budget');
+  }
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+  return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// exportedPNG must come from this saved job's isolated render.
+const reportBlob = new Blob([JSON.stringify(report)], { type: 'application/json' });
+const index = {
+  jobId: report.job.id,
+  report: { sha256: await sha256(reportBlob, reportByteBudget), bytes: reportBlob.size },
+  image: { sha256: await sha256(exportedPNG, imageByteBudget), bytes: exportedPNG.size,
+    mimeType: exportedPNG.type, width: report.job.request.width, height: report.job.request.height }
+};
+// Save reportBlob, exportedPNG and JSON.stringify(index) together.
+```
+
+Before associating imported files, verify both hashes against the saved index,
+check decoded image dimensions, and use the original saved report bytes rather
+than reserializing parsed JSON. Limits, schema checks, replay validation and
+image decoding remain integration code. Digests detect byte changes relative to
+the index; they do not authenticate the index, verify authorship or grant approval.
 
 Changing composition, frame, output, paper, printer, profile or criteria requires
 a new captured job. Proof approval belongs in the external artist/printer system
@@ -175,6 +300,10 @@ or a distributed cost-control service.
    linked to the saved record, and report which SDK fields or callback steps
    caused duplicated work or ambiguity.
 
-Repository fixtures test snapshot isolation and browser rendering behavior. They
-do not establish real-device portability or physical print quality. The physical
-trial and Kepler integration remain work to perform with Mihira.
+Repository fixtures test snapshot isolation and browser rendering behavior. The
+team has also reported successful Kepler integration on Chrome 156.0.8078.48 /
+ANGLE SwiftShader, WebGL 1, including saved-job replay after live edits. This is
+reported integration evidence, not independently reproduced artwork source.
+No physical proof has been reported; actual printer, stock, ICC profile and
+measurable criteria remain unresolved. Real-device and physical-print validation
+remain work to perform with Mihira and the printer.

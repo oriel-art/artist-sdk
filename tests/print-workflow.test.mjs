@@ -166,3 +166,95 @@ test('inspection failures release slots, and pre-cancelled screens never inspect
   for (let i = 0; i < 6; i++) await assert.rejects(makeJob().screen(), /renderer failed/);
   assert.equal((await makeJob().screen()).screening.status, 'supported');
 });
+
+test('structured print conditions are validated and preserved without changing image dimensions', async () => {
+  const candidate = input();
+  Object.assign(candidate.specification, {
+    media: { manufacturer: 'Fixture', stock: 'Fixture stock', finish: 'matte', weightGsm: 300,
+      inkSet: 'Fixture ink', settings: { quality: 'fixture-quality', platenGap: 2 } },
+    iccProfile: { name: 'fixture.icc', sha256: 'a'.repeat(64) }, blackPointCompensation: false,
+    borders: { unit: 'mm', top: 10, right: 5, bottom: 10, left: 0 },
+    colourCriteria: [{ metric: 'fixture-metric', maximum: 0, unit: 'fixture-unit', method: 'fixture-method' }],
+    extensions: { 'art.kepler.print.v1': { provisional: true, operatorPreset: 'fixture' } }
+  });
+  const expected = structuredClone(candidate);
+  let received;
+  const job = workflow({ inspect: saved => { received = saved; return passed(); } }).captureJob(candidate);
+  candidate.specification.media.settings.quality = 'later';
+  const report = await job.screen();
+  assert.deepEqual(received.specification, expected.specification);
+  assert.deepEqual(report.job.specification, expected.specification);
+  assert.deepEqual(report.job.request, expected.request);
+  assert.equal(report.printApproval, 'not-granted');
+});
+
+test('invalid structured settings and extension payloads reject before capture', () => {
+  let captures = 0, getters = 0;
+  const flow = workflow({ capture: () => { captures++; return captured(); } });
+  const extensionAccessor = Object.defineProperty({}, 'value', { enumerable: true, get() { getters++; return 1; } });
+  for (const extension of [
+    { media: { weightGsm: -1 } }, { media: { settings: [] } }, { media: { unknown: true } },
+    { iccProfile: { name: 'x', sha256: 'not-a-digest' } }, { blackPointCompensation: 'automatic' },
+    { borders: { unit: 'px', top: 0, right: 0, bottom: 0, left: 0 } },
+    { borders: { unit: 'mm', top: -1, right: 0, bottom: 0, left: 0 } },
+    { borders: { unit: 'mm', top: 0, right: 0, bottom: 0 } },
+    { colourCriteria: [{ metric: 'metric', maximum: -1, unit: 'unit', method: 'method' }] },
+    { extensions: [] }, { extensions: { 'art.kepler.print.v1': extensionAccessor } }
+  ]) {
+    const candidate = input(); Object.assign(candidate.specification, extension);
+    assert.throws(() => flow.captureJob(candidate), code('INVALID_INPUT'));
+  }
+  const huge = input(); huge.specification.extensions = { 'art.kepler.print.v1': 'x'.repeat(8192) };
+  assert.throws(() => flow.captureJob(huge), code('LIMIT'));
+  assert.equal(captures, 0); assert.equal(getters, 0);
+});
+
+test('unassessed quality remains pending, failure dominates pending, and legacy outcomes remain compatible', async () => {
+  const cases = [
+    [['passed', 'passed', 'passed'], 'supported'],
+    [['passed', 'not-assessed', 'passed'], 'requires-evaluation'],
+    [['not-assessed', 'not-assessed', 'not-assessed'], 'requires-evaluation'],
+    [['passed', 'failed', 'passed'], 'unsupported'],
+    [['failed', 'not-assessed', 'passed'], 'unsupported']
+  ];
+  for (const [statuses, expected] of cases) {
+    const checks = Object.fromEntries(['grain', 'lineWeight', 'colour'].map((name, i) => [name, { status: statuses[i] }]));
+    const report = await workflow({ inspect: () => checks }).captureJob(input()).screen();
+    assert.equal(report.screening.status, expected);
+    assert.deepEqual(report.checks, checks);
+    assert.equal(report.screening.issues.filter(issue => issue.code === 'NOT_ASSESSED').length, statuses.filter(status => status === 'not-assessed').length);
+    assert.equal(report.printApproval, 'not-granted');
+  }
+  const legacy = passed(); legacy.colour.passed = false;
+  const report = await workflow({ inspect: () => legacy }).captureJob(input()).screen();
+  assert.deepEqual(report.checks, legacy);
+  assert.equal(report.screening.status, 'unsupported');
+  assert.equal(report.screening.issues[0].path, 'checks.colour');
+  for (const bad of [{ status: 'unknown' }, { status: 'passed', passed: false }, {}]) {
+    await assert.rejects(workflow({ inspect: () => ({ ...passed(), grain: bad }) }).captureJob(input()).screen(), code('INVALID_INPUT'));
+  }
+});
+
+test('capture rejections preserve actionable sources, paths and constraint codes', () => {
+  let calls = 0;
+  const c = capabilities(); c.technical.rendering.maxPixels = 1;
+  c.artist.print = { dpi: { min: 300, max: 600 } };
+  const flow = workflow({ capabilities: c, capture: () => { calls++; return captured(); } });
+  assert.throws(() => flow.captureJob(input()), error => {
+    assert.equal(error.code, 'UNSUPPORTED');
+    assert.deepEqual(error.issues.map(issue => [issue.source, issue.code, issue.path]), [
+      ['technical', 'PIXEL_LIMIT', 'width'], ['artist', 'OUT_OF_RANGE', 'print.dpi']
+    ]);
+    error.issues[0].code = 'caller mutation';
+    return true;
+  });
+  assert.throws(() => flow.captureJob(input()), error => error.issues[0].code === 'PIXEL_LIMIT');
+  assert.equal(calls, 0);
+  const invalid = input(); invalid.request.extra = true;
+  assert.throws(() => workflow().captureJob(invalid), error => error.code === 'INVALID_REQUEST' && error.issues[0].source === 'request');
+  const square = input(); square.request.height = 2048; square.request.print.height = 8;
+  assert.throws(() => workflow().captureJob(square), error => error.code === 'ASPECT_RATIO'
+    && error.issues.every(issue => issue.code === 'ASPECT_RATIO'));
+  const wrongFrame = captured(); wrongFrame.frame.aspectRatio = 3;
+  assert.throws(() => workflow({ capture: () => wrongFrame }).captureJob(input()), error => error.issues[0].path === 'capture.frame.aspectRatio');
+});
