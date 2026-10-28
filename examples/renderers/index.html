@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oriel renderer integrations</title>
+  <style>
+    body { margin: 2rem auto; padding: 0 1rem; max-width: 1000px; font: 16px/1.5 system-ui; background: #f5f1e8; color: #282923; }
+    main { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 1rem; }
+    article { padding: 1rem; border: 1px solid #aaa; background: #fffdf7; }
+    canvas { width: 100%; height: auto; display: block; }
+    button { font: inherit; margin-top: 1rem; padding: .5rem 1rem; cursor: pointer; }
+    #status { min-height: 1.5em; }
+  </style>
+</head>
+<body>
+  <h1>One saved composition, familiar drawing tools</h1>
+  <p>Canvas 2D, p5.js and Three.js use the same snapshot and isolated PNG export contract.</p>
+  <p id="status" role="status">Loading examples. Run npm ci and npm run build:renderer-examples first.</p>
+  <main></main>
+  <script type="module" src="./bundle.js"></script>
+</body>
+</html>

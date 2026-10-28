@@ -40,18 +40,24 @@ your own project, run a minimal example, and choose the modules you need.
 | Describe an artwork | Project/edition metadata, translations, licensing and descriptive provenance references |
 | Tell viewers what is supported | Technical limits, artist constraints, output validation and optional runtime evaluation |
 | Make an artwork discoverable | Static JSON descriptions and opt-in runtime queries through the artwork bridge |
-| Export a saved frame | Optional WebGL 1 PNG renderer; capture-and-screen workflow for artist-owned export integrations |
+| Render and export a saved frame | Canvas 2D, p5.js P2D/WEBGL and Three.js integrations with isolated PNG export; capture-and-screen workflows |
 | Build studio controls | Optional info panel, parameter editing, repeatable parameter checks and case replay |
 
 The full `@oriel-art/artist-sdk` package includes these modules. Use
 `@oriel-art/capabilities` or `@oriel-art/metadata` independently when you only need
 artwork descriptions and validation. See [package choices and TypeScript coverage](docs/getting-started.md#choose-your-package).
 
-Keep an existing renderer to adopt the utilities independently. The optional
-shader runner supports WebGL 1 / GLSL ES 1.00 with one fragment pass. Textures,
-multipass feedback, WebGL 2 shaders and other rendering systems require your own
-renderer. Dedicated p5.js, Canvas 2D, Three.js and platform publishing adapters
-are future work.
+Keep an existing renderer to adopt the utilities independently, or use the
+[renderer integrations](docs/renderers.md): Canvas 2D, p5.js instance mode and
+Three.js. p5 WEBGL and Three.js support WebGL 2; the older `/webgl` shader runner
+remains a separate WebGL 1 option. Complex feedback/postprocessing and automatic
+simulation restoration need artist-defined integration. Platform publishing
+adapters remain future work.
+
+To try all three stacks, run `npm ci`, `npm run build:renderer-examples`, then
+`npm run dev` and open [the renderer examples](http://127.0.0.1:4173/examples/renderers/).
+The examples bundle pinned development libraries locally; the SDK adds no runtime
+dependency on p5.js or Three.js.
 
 Recipes capture inputs; your artwork defines how to restore its state. Automatic
 simulation/session replay and cross-device pixel identity are not provided.
@@ -63,6 +69,7 @@ print function can use the exported image and report directly.
 | Guide | Use it for |
 | --- | --- |
 | [Artist quickstart](docs/getting-started.md) | Installation, package selection and a first integration |
+| [Renderer integrations](docs/renderers.md) | Canvas 2D, p5.js, Three.js, saved snapshots and isolated PNG export |
 | [JavaScript / WebGL integration](docs/pilot-guide.md) | Seeds, recipes, your own renderer, PNG export and the iframe bridge |
 | [Capabilities, metadata and discovery](docs/capabilities-and-metadata.md) | Artwork descriptions, output constraints, static JSON and runtime queries |
 | [Capture-and-screen workflow](docs/print-workflow-pilot.md) | Saved compositions, artist-defined screening, limits and report/image linking |

@@ -16,9 +16,10 @@ controls, exports, metadata, and platform glue for every project.
 
 Mihira is the initial artist reference. Their first project, Kepler's Dream, uses plain JavaScript
 and WebGL, with GLSL drawing directly on an HTML canvas. Start there with a small
-SDK and gather concrete adoption feedback. p5.js, Canvas 2D, and Three.js remain
-subsequent integration targets. Support must be tested with a real artwork in
-each environment, not inferred from the raw-WebGL example.
+SDK and gather concrete adoption feedback. The SDK now also includes
+[Canvas 2D, p5.js and Three.js integrations](renderers.md) with browser regression
+tests. Artist adoption in each environment still needs artwork-specific trials;
+SDK fixture coverage alone is not validation of an existing drop.
 
 The product has five themes and a shared artwork bridge:
 
