@@ -1,13 +1,14 @@
-# Mihira's JavaScript / WebGL pilot
+# JavaScript / WebGL integration guide
 
-Version: **0.1.0-alpha.4**. This is an experimental SDK to try on an actual
-artwork. It contains working code and examples; the broader feature plan remains
-a proposal. APIs and recipe/protocol versions can change after artist feedback.
+Core package version: **0.1.0-alpha.4**. For installation and package choices,
+start with the [artist quickstart](getting-started.md). This guide covers the
+implemented JavaScript/WebGL APIs. The broader feature plan remains a proposal;
+APIs and recipe/protocol versions can change after artist feedback.
 
-The first project, **Kepler's Dream**, uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
+The first integration, **Kepler's Dream**, uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
 Three.js, React, build step, network service, or runtime dependency is required.
-Alpha.2/alpha.3 integrations have been reported; their source/tests have not been supplied
-here. Read the [feedback record](keplers-dream-feedback.md) and
+Artist integration and subsequent discovery/capture-and-screen trials have been
+reported; the artwork's source/tests are not held here. Read the [feedback record](keplers-dream-feedback.md) and
 [alpha.3 integration guide](alpha3-guide.md) for resolver/context APIs and the
 [alpha.4 guide](alpha4-guide.md) for current report/editing behavior and validation.
 
@@ -79,10 +80,12 @@ const phase = composition.float(0, Math.PI * 2);
 
 Copy the complete `src` directory into the project and adjust the relative
 import path. All source files use native ES modules. For a project with a package
-bundler, create a local package with `npm pack --cache /tmp/artist-sdk-npm-cache`,
-install the resulting `.tgz`, and import from `@oriel-art/artist-sdk`,
-`@oriel-art/artist-sdk/webgl`, or `@oriel-art/artist-sdk/bridge`. There is no npm
-registry release yet. The package has no TypeScript declaration files in this pilot.
+bundler, follow the [tarball installation steps](getting-started.md#install-in-your-own-project)
+and import from `@oriel-art/artist-sdk`, `@oriel-art/artist-sdk/webgl`, or
+`@oriel-art/artist-sdk/bridge`. The capabilities, metadata and discovery entry
+points include TypeScript declarations, as do the standalone capabilities and
+metadata packages. Core artwork, renderer, bridge and older UI modules remain
+JavaScript-only.
 
 **Use the optional shader runner.** It owns a fresh canvas/context and draws a
 fullscreen triangle with your fragment shader. Do not attach it to a context
