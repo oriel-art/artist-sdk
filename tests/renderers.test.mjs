@@ -147,3 +147,34 @@ test('p5 initialization before window load rejects instead of deadlocking module
   await assert.rejects(renderer.render(frame()), code('NOT_READY'));
   assert.equal(calls, 0);
 });
+
+for (const operation of ['render', 'exportPNG']) for (const action of ['abort', 'dispose']) {
+  test(`${operation}: ${action} between target creation and drawing releases without drawing`, async () => {
+    const targets = [], contexts = [], appended = [];
+    let draws = 0;
+    const renderer = createRenderSession({ document, container: { ownerDocument: document, append: target => appended.push(target) },
+      // Synchronous factory places the queued action after make's check, before its caller resumes.
+      createTarget(context) {
+        contexts.push(context);
+        const target = { released: 0, removed: 0,
+          canvas: { width: context.width, height: context.height, remove() { target.removed++; },
+            toBlob(callback) { callback(new Blob(['png'], { type: 'image/png' })); } },
+          draw() { draws++; }, dispose() { target.released++; } };
+        targets.push(target); return target;
+      } });
+    const abort = new AbortController();
+    const run = signal => operation === 'render' ? renderer.render({ ...frame(), signal })
+      : renderer.exportPNG({ snapshot: frame(), width: 64, height: 32, signal });
+    const pending = run(abort.signal);
+    queueMicrotask(() => action === 'abort' ? abort.abort() : renderer.dispose());
+    await assert.rejects(pending, code(action === 'abort' ? 'CANCELLED' : 'DISPOSED'));
+    assert.equal(draws, 0); assert.equal(appended.length, 0);
+    assert.equal(targets[0].released, 1); assert.equal(targets[0].removed, 1);
+    assert.equal(renderer.canvas, null);
+    assert.deepEqual([contexts[0].width, contexts[0].height], operation === 'render' ? [32, 16] : [64, 32]);
+    if (action === 'abort') { await run(); assert.equal(draws, 1); }
+    else await assert.rejects(run(), code('DISPOSED'));
+    renderer.dispose();
+    assert.ok(targets.every(target => target.released === 1 && target.removed === 1));
+  });
+}

@@ -21,6 +21,84 @@ async function pageFor(t) {
   assert.equal(await page.evaluate(() => !!window.rendererExamples), true, await page.locator('#status').textContent());
   return page;
 }
+
+test('Canvas paths from earlier frames do not leak into repeated preview or export', async t => {
+  const page = await pageFor(t);
+  const result = await page.evaluate(async () => {
+    const { createCanvasRenderer } = await import('/src/renderers.js');
+    const renderer = createCanvasRenderer({ draw(ctx, { height, state }) {
+      ctx.strokeStyle = 'red'; ctx.lineWidth = 4;
+      ctx.moveTo(state.x, 0); ctx.lineTo(state.x, height); ctx.stroke();
+    } });
+    try {
+      await renderer.render({ width: 32, height: 32, state: { x: 8 } });
+      await renderer.render({ width: 32, height: 32, state: { x: 24 } });
+      const preview = renderer.canvas.getContext('2d').getImageData(0, 0, 32, 32).data;
+      const bitmap = await createImageBitmap(await renderer.exportPNG());
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); bitmap.close();
+      const exported = ctx.getImageData(0, 0, 32, 32).data;
+      return { equal: preview.every((value, index) => value === exported[index]),
+        oldAlpha: preview[(16 * 32 + 8) * 4 + 3], newAlpha: preview[(16 * 32 + 24) * 4 + 3] };
+    } finally { renderer.dispose(); }
+  });
+  assert.deepEqual(result, { equal: true, oldAlpha: 0, newAlpha: 255 });
+});
+
+for (const mode of ['2d', 'webgl']) test(`p5 ${mode}: setup layouts use requested preview and export dimensions`, async t => {
+  const page = await pageFor(t);
+  const result = await page.evaluate(async mode => {
+    const { createP5Renderer } = await import('/src/renderers.js');
+    const { p5 } = window.rendererExamples;
+    const setups = [], layouts = new WeakMap(), drawn = [];
+    const renderer = createP5Renderer({ p5, mode,
+      setup(p) {
+        setups.push([p.width, p.height, p.canvas.width, p.canvas.height]);
+        layouts.set(p, [p.width / 2, p.height / 2]);
+      }, draw(p) { drawn.push(layouts.get(p)); p.background(200); } });
+    try {
+      await renderer.render({ width: 640, height: 480, state: {} });
+      await renderer.exportPNG({ width: 1280, height: 960 });
+      await renderer.render({ width: 320, height: 240, state: {} });
+      return { setups, drawn, resized: [renderer.canvas.width, renderer.canvas.height] };
+    } finally { renderer.dispose(); }
+  }, mode);
+  assert.deepEqual(result.setups, [[640, 480, 640, 480], [1280, 960, 1280, 960]]);
+  assert.deepEqual(result.drawn, [[320, 240], [640, 480], [320, 240]]);
+  assert.deepEqual(result.resized, [320, 240]);
+});
+
+test('Three.js unchanged frames avoid backing-buffer writes while resizing still works', async t => {
+  const page = await pageFor(t);
+  const result = await page.evaluate(async () => {
+    const { createThreeRenderer } = await import('/src/renderers.js');
+    const { THREE } = window.rendererExamples;
+    let writes = 0, updates = 0, gl;
+    const session = createThreeRenderer({ THREE, createScene({ renderer }) {
+      gl = renderer.getContext();
+      for (const key of ['width', 'height']) {
+        const descriptor = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, key);
+        Object.defineProperty(renderer.domElement, key, {
+          get() { return descriptor.get.call(this); },
+          set(value) { writes++; descriptor.set.call(this, value); }, configurable: true
+        });
+      }
+      return { scene: new THREE.Scene(), camera: new THREE.PerspectiveCamera(),
+        update() { updates++; }, dispose() {} };
+    } });
+    try {
+      await session.render({ width: 64, height: 64, state: {} });
+      writes = 0;
+      for (let i = 0; i < 3; i++) await session.render({ width: 64, height: 64, state: { time: i } });
+      const unchangedWrites = writes;
+      await session.render({ width: 96, height: 48, state: {} });
+      return { unchangedWrites, resizedWrites: writes - unchangedWrites, updates,
+        dimensions: [session.canvas.width, session.canvas.height, gl.drawingBufferWidth, gl.drawingBufferHeight] };
+    } finally { session.dispose(); }
+  });
+  assert.deepEqual(result, { unchangedWrites: 0, resizedWrites: 2, updates: 5, dimensions: [96, 48, 96, 48] });
+});
+
 for (const kind of ['canvas', 'p5', 'p5-webgl', 'three']) test(`${kind}: exact pixels, saved replay, independent export and cleanup`, { timeout: 30000 }, async t => {
   const page = await pageFor(t);
   const result = await page.evaluate(async kind => {

@@ -49,8 +49,8 @@ export function createRenderSession({ createTarget, container, document = global
     requireValue(object(value.state), 'Snapshot state must be a JSON object');
     return value;
   };
-  const make = async (purpose, signal) => {
-    const target = await createTarget({ document, purpose, signal });
+  const make = async (purpose, signal, { width, height }) => {
+    const target = await createTarget({ document, purpose, signal, width, height });
     // A mistaken custom factory must not draw into or dispose the live canvas.
     requireValue(!live || target?.canvas !== live.canvas, 'Target factory reused the preview canvas', 'INVALID_TARGET');
     try {
@@ -73,9 +73,11 @@ export function createRenderSession({ createTarget, container, document = global
       rendering = true;
       try {
         if (!live) {
-          live = await make('preview', signal);
+          live = await make('preview', signal, frame);
+          check(signal);
           container?.append(live.element ?? live.canvas);
         }
+        check(signal);
         await live.draw(data(frame, MAX_SNAPSHOT_BYTES), { signal });
         check(signal);
         bufferSize(live.canvas, frame.width, frame.height);
@@ -100,7 +102,8 @@ export function createRenderSession({ createTarget, container, document = global
       exporting = true;
       let target;
       try {
-        target = await make('export', signal);
+        target = await make('export', signal, frame);
+        check(signal);
         await target.draw(data(frame, MAX_SNAPSHOT_BYTES), { signal });
         check(signal);
         bufferSize(target.canvas, width, height);
@@ -139,6 +142,7 @@ export function createCanvasRenderer({ draw, ...options }) {
       try {
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.clearRect(0, 0, frame.width, frame.height);
+        context.beginPath();
         synchronous(draw(context, frame), 'Canvas draw');
       } finally { context.restore(); }
     }, dispose() { canvas.width = canvas.height = 1; } };
@@ -150,7 +154,7 @@ export function createP5Renderer({ p5, draw, setup, mode = '2d', webglVersion = 
   requireValue(typeof p5 === 'function' && typeof draw === 'function', 'A p5 constructor and draw callback are required');
   requireValue(setup === undefined || typeof setup === 'function', 'Invalid p5 setup callback');
   requireValue(['2d', 'webgl'].includes(mode) && [1, 2].includes(webglVersion), 'Invalid p5 renderer mode');
-  return createRenderSession({ ...options, createTarget: async ({ document }) => {
+  return createRenderSession({ ...options, createTarget: async ({ document, width, height }) => {
     requireValue(document.readyState === 'complete', 'Start p5 rendering after the window load event', 'NOT_READY');
     const host = document.createElement('div');
     let instance, surface, gl, pending;
@@ -165,7 +169,11 @@ export function createP5Renderer({ p5, draw, setup, mode = '2d', webglVersion = 
               if (mode === 'webgl') {
                 gl = p.drawingContext;
                 requireValue(p.webglVersion === (webglVersion === 2 ? p.WEBGL2 : p.WEBGL), 'Requested p5 WebGL version is unavailable', 'WEBGL_UNAVAILABLE');
+                gpuSize(gl, width, height);
               }
+              // Bootstrap only to inspect device limits; artist setup sees the requested size.
+              p.resizeCanvas(width, height, true);
+              bufferSize(surface, width, height, gl);
               if (setup) synchronous(setup(p), 'p5 setup');
               p.noLoop();
               resolve();
@@ -215,7 +223,9 @@ export function createThreeRenderer({ THREE, createScene, ...options }) {
         && typeof content.dispose === 'function', 'Scene factory must return scene, camera, update and dispose');
       return { canvas, draw(frame) {
         gpuSize(gl, frame.width, frame.height);
-        renderer.setSize(frame.width, frame.height, false);
+        if (canvas.width !== frame.width || canvas.height !== frame.height) {
+          renderer.setSize(frame.width, frame.height, false);
+        }
         synchronous(content.update(frame), 'Three.js update');
         renderer.render(content.scene, content.camera);
         bufferSize(canvas, frame.width, frame.height, gl);

@@ -33,6 +33,9 @@ export interface RendererOptions {
 export interface TargetContext {
   document: Document;
   purpose: 'preview' | 'export';
+  /** Validated initial backing-pixel dimensions for this target. */
+  width: number;
+  height: number;
   signal?: AbortSignal;
 }
 export interface RenderTarget<State extends RenderState = RenderState> {
@@ -56,7 +59,7 @@ export function createP5Renderer<P, State extends RenderState = RenderState>(opt
   mode?: '2d' | 'webgl';
   /** Required context version in WEBGL mode; defaults to 2. No silent fallback. */
   webglVersion?: 1 | 2;
-  /** Synchronous, once per fresh target. Load assets before creating the session. */
+  /** Synchronous, once per fresh target at its requested dimensions. Later resizes do not rerun setup. Load assets before creating the session. */
   setup?(instance: P): void;
   /** Synchronous draw. Use snapshot state instead of frameCount/millis for replay. */
   draw(instance: P, snapshot: RenderSnapshot<State>): void;

@@ -114,7 +114,7 @@ const renderer = createCanvasRenderer({
 await renderer.render({ width: 800, height: 800, state: { radius: 0.25 } });
 ```
 
-The adapter clears the frame, resets the transform and wraps the callback in
+The adapter clears the frame, resets the transform and current path, and wraps the callback in
 `save()`/`restore()`. Draw synchronously and use balanced context state operations.
 Load assets before rendering, and keep export assets accessible to each target.
 Cross-origin assets must meet the browser's canvas export rules.
@@ -149,7 +149,10 @@ else window.addEventListener('load', () => start().catch(console.error), { once:
 
 Calling the p5 adapter's first render before window load rejects with `NOT_READY`.
 `setup(p)` is optional and synchronous, and runs once for every new target,
-including exports. The adapter creates the canvas, sets density 1 and calls
+including exports. It sees the requested `p.width` and `p.height`, with device
+limits and allocation checked first. Later preview resizes do not rerun setup;
+update size-dependent layouts or artist-owned buffers in `draw` when needed.
+The adapter creates the canvas, sets density 1 and calls
 `noLoop()`; do not replace its `setup`/`draw`, call `createCanvas()` again, or start
 a competing draw loop. Assets should be loaded before using the session.
 
@@ -221,8 +224,9 @@ is not the appropriate render operation.
 Keep an existing WebGL 2, regl, Paper.js or other renderer for core SDK adoption.
 For the shared export contract, `createRenderSession({ createTarget })` accepts a
 factory returning `{ canvas, draw, dispose }` and optional `check`/`element`.
-Factories receive `{ document, purpose, signal }` and must create fresh owned
-targets. Custom `draw(snapshot, { signal })` may be asynchronous; `check()` runs
+Factories receive `{ document, purpose, signal, width, height }`, with validated
+initial backing-pixel dimensions, and must create fresh owned targets.
+Custom `draw(snapshot, { signal })` may be asynchronous; `check()` runs
 after encoding to detect target loss. Never return your live/shared canvas as an
 export target. The SDK cannot discover arbitrary renderer state or clone it.
 

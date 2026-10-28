@@ -76,7 +76,8 @@ createThreeRenderer({ THREE: { WebGLRenderer: ThreeRendererFixture }, createScen
   renderer.setClearColor('black');
   return { scene: {}, camera: {}, update(frame) { frame.width.toFixed(); }, dispose() {} };
 } });
-createRenderSession({ createTarget({ document }) {
-  return { canvas: document.createElement('canvas'), draw() {}, dispose() {} };
+createRenderSession({ createTarget({ document, width, height }) {
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+  return { canvas, draw() {}, dispose() {} };
 } });
 canvasRenderer.dispose();
