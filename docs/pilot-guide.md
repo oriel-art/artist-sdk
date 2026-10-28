@@ -4,6 +4,8 @@ Core package version: **0.1.0-alpha.4**. For installation and package choices,
 start with the [artist quickstart](getting-started.md). This guide covers the
 implemented JavaScript/WebGL APIs. The broader feature plan remains a proposal;
 APIs and recipe/protocol versions can change after artist feedback.
+For Canvas 2D, p5.js and Three.js, use the [renderer integrations guide](renderers.md);
+the WebGL 1 restrictions below apply only to this guide's shader runner.
 
 The first integration, **Kepler's Dream**, uses plain JavaScript and GLSL on an HTML canvas. No p5.js,
 Three.js, React, build step, network service, or runtime dependency is required.

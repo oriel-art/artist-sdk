@@ -52,3 +52,32 @@ printReport.printApproval;
 createPrintWorkflow({ artwork: { id: 'demo', version: '1' }, capabilities, capture: async () => ({ recipe: { artworkId: 'demo', artworkVersion: '1' }, frame: { aspectRatio: 1 } }) });
 // @ts-expect-error physical dimensions and DPI are required for print jobs
 printWorkflow.captureJob({ id: 'proof-2', request, specification: printSpecification });
+
+// The renderer module is typed without pulling p5/Three.js into SDK dependencies.
+import { createCanvasRenderer, createP5Renderer, createThreeRenderer, createRenderSession,
+  type RenderSession, type RenderSnapshot } from '@oriel-art/artist-sdk/renderers';
+type DrawingState = { seed: string; time: number };
+const canvasRenderer: RenderSession<DrawingState> = createCanvasRenderer<DrawingState>({ draw(ctx, frame) {
+  ctx.fillRect(0, 0, frame.width, frame.height); frame.state.time.toFixed(2);
+} });
+const capturedFrame: RenderSnapshot<DrawingState> = await canvasRenderer.render({ width: 64, height: 64, state: { seed: 'sample', time: 0 } });
+await canvasRenderer.exportPNG({ snapshot: capturedFrame, width: 128, height: 128 });
+// @ts-expect-error snapshot state must match the artist-defined contract
+canvasRenderer.render({ width: 64, height: 64, state: { seed: 'sample', time: 'later' } });
+// @ts-expect-error renderer state is JSON, not arbitrary instances
+createCanvasRenderer<{ date: Date }>({ draw() {} });
+declare class P5Fixture {
+  constructor(sketch: (p: P5Fixture) => void, node: HTMLElement);
+  circle(x: number, y: number, diameter: number): void;
+}
+createP5Renderer({ p5: P5Fixture, draw(p, frame) { p.circle(frame.width / 2, 0, 10); } });
+declare class ThreeRendererFixture { setClearColor(colour: string): void }
+createThreeRenderer({ THREE: { WebGLRenderer: ThreeRendererFixture }, createScene({ renderer }) {
+  renderer.setClearColor('black');
+  return { scene: {}, camera: {}, update(frame) { frame.width.toFixed(); }, dispose() {} };
+} });
+createRenderSession({ createTarget({ document, width, height }) {
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+  return { canvas, draw() {}, dispose() {} };
+} });
+canvasRenderer.dispose();

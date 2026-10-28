@@ -1,9 +1,11 @@
 # Artist SDK roadmap
 
-Status: `0.1.0-alpha.4` feedback iteration implemented, October 26, 2026.
-Kepler's Dream integration and improvements on alpha.3 have been reported;
-alpha.4 artist validation, remaining M0 design validation, and broader milestones remain open. There is no npm registry
-release, production platform integration, or deployment.
+Status: experimental SDK with artist onboarding, capabilities/metadata/discovery,
+capture-and-screen workflows, and Canvas 2D/p5.js/Three.js renderer integrations.
+Kepler's Dream has reported successful capture-and-screen integration; see the
+[feedback record](keplers-dream-feedback.md). The [renderer guide](renderers.md)
+records the tested dependency versions and remaining integration boundaries.
+Production platform adapters and publishing remain future work.
 
 Read the [feature plan](feature-plan.md) for scope and the
 [artwork bridge specification](artwork-bridge.md) for the viewer protocol.
@@ -17,8 +19,8 @@ dates. Effort estimates should follow the initial artwork trials.
 | Milestone | Outcome | Depends on |
 | --- | --- | --- |
 | M0a First WebGL toolkit | A small SDK Mihira can try; implemented experimentally | Plain JavaScript/WebGL brief |
-| M0b Artist-led design validation | Alpha.3 improvements reported; alpha.4 implemented; artist validation outstanding | M0a and Mihira's artwork |
-| M1 Reproducible artwork and basic bridge | Harden the pilot and extend to additional renderer examples | M0 feedback |
+| M0b Artist-led design validation | Kepler capture-and-screen integration reported; further artist/stack trials remain open | M0a and Mihira's artwork |
+| M1 Reproducible artwork and basic bridge | Core/bridge and Canvas 2D, p5.js, Three.js fixtures implemented; continue artwork-specific hardening | M0 feedback |
 | M2 Collection and viewer workflows | Exploration, validation, and real bitVerse integration | M1 |
 | M3 Platform readiness | Verified runtime adapters and publication bundles | M1, with M2 validation tooling |
 | M4 Production publishing | Supported releases can be published and verified | M3 and target access |

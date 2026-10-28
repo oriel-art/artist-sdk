@@ -10,6 +10,7 @@ const entries = {
   'parameters + recipes': "export { createArtwork, fromRecipe, restoreRecipe } from './src/index.js'",
   'browser helpers': "export * from './src/browser.js'",
   'bridge, both sides': "export * from './src/bridge.js'",
+  'renderer integrations': "export * from './src/renderers.js'",
   'shader runner': "export * from './src/webgl.js'",
   'core + render + bridge': "export * from './src/index.js'; export * from './src/webgl.js'; export * from './src/bridge.js'",
   'info popup': "export * from './src/info.js'",

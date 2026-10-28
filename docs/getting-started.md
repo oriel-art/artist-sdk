@@ -24,14 +24,18 @@ composition. Open <http://127.0.0.1:4173/examples/host/> to try the viewer bridg
 Use HTTP rather than opening the HTML file directly. Stop the server with Ctrl+C.
 These demos need no dependency installation or build.
 
-The sample artwork uses the SDK's optional single-pass WebGL 1 renderer. Your
-own artwork can keep its renderer and use just the other SDK modules.
+The first sample uses the optional single-pass WebGL 1 renderer. For Canvas 2D,
+p5.js and Three.js examples, run `npm ci` and `npm run build:renderer-examples`,
+then open `/examples/renderers/` on the same server. Read the
+[renderer guide](renderers.md) for the tested library versions and integration
+contracts. Your artwork can also keep its existing renderer.
 
 ## Choose your package
 
 | Package or entry point | What it provides | TypeScript declarations |
 | --- | --- | --- |
 | `@oriel-art/artist-sdk` | Core artwork, randomness, parameters and recipes; optional modules through subpath imports | Core and older UI/renderer modules are JavaScript-only |
+| `@oriel-art/artist-sdk/renderers` | Canvas 2D, p5.js, Three.js and custom target integrations | Yes |
 | `@oriel-art/artist-sdk/capabilities` | Rendering/print constraints, validation and capture-and-screen workflow | Yes |
 | `@oriel-art/artist-sdk/metadata` | Project/edition descriptions, translations and provenance references | Yes |
 | `@oriel-art/artist-sdk/discovery` | Combined static description and runtime query registration | Yes |
@@ -206,10 +210,11 @@ and record its commit. Replace the complete source directory when upgrading.
 - **Explore parameters:** use the [info and parameter tools](info-and-parameters.md),
   [recipe integration](alpha3-guide.md) and [editing/report guide](alpha4-guide.md).
 
-The optional renderer supports single-pass WebGL 1. Dedicated p5.js, Canvas 2D,
-Three.js, WebGL 2/multipass export and platform publishing adapters are future
-work; keeping your own renderer is supported now. Automatic simulation replay
-is also outside the current implementation.
+The [renderer integrations](renderers.md) support Canvas 2D, p5.js instance mode
+(P2D or WEBGL) and Three.js, including WebGL 2. The older shader runner remains
+a single-pass WebGL 1 option. Complex feedback/postprocessing, automatic simulation
+replay and platform publishing require further integration; keeping your own
+renderer remains supported.
 
 For integration questions or bugs, [open an issue](https://github.com/oriel-art/artist-sdk/issues)
 with your SDK commit, browser/renderer, expected result and a small reproduction.

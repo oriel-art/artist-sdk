@@ -36,6 +36,11 @@
       "types": "./src/discovery.d.ts",
       "import": "./src/discovery.js",
       "default": "./src/discovery.js"
+    },
+    "./renderers": {
+      "types": "./src/renderers.d.ts",
+      "import": "./src/renderers.js",
+      "default": "./src/renderers.js"
     }
   },
   "files": [
@@ -49,17 +54,20 @@
   ],
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "test": "node --test tests/core.test.mjs tests/testing.test.mjs tests/recipes.test.mjs tests/descriptions.test.mjs tests/capability-workflows.test.mjs tests/print-workflow.test.mjs",
-    "test:browser": "node --test tests/browser.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/testing.test.mjs tests/recipes.test.mjs tests/descriptions.test.mjs tests/capability-workflows.test.mjs tests/print-workflow.test.mjs tests/renderers.test.mjs",
+    "test:browser": "npm run build:renderer-examples && node --test tests/browser.test.mjs tests/renderers-browser.test.mjs",
     "size": "node scripts/size.mjs",
     "build": "node scripts/build-packages.mjs",
     "prepare": "npm run build",
     "test:types": "tsc -p tests/types/tsconfig.json",
-    "test:packages": "node scripts/test-packages.mjs"
+    "test:packages": "node scripts/test-packages.mjs",
+    "build:renderer-examples": "node scripts/build-renderer-examples.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
+    "p5": "1.11.11",
     "playwright": "^1.64.1",
+    "three": "0.167.0",
     "typescript": "^5.9.3"
   },
   "workspaces": [

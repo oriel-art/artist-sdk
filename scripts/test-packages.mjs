@@ -24,6 +24,10 @@ try {
     import { createCapabilities, createPrintWorkflow } from '@oriel-art/capabilities';
     import { createMetadata } from '@oriel-art/metadata';
     import { createArtwork } from '@oriel-art/artist-sdk';
+    import { createCanvasRenderer, createP5Renderer, createThreeRenderer } from '@oriel-art/artist-sdk/renderers';
+    assert.equal(typeof createCanvasRenderer, 'function');
+    assert.equal(typeof createP5Renderer, 'function');
+    assert.equal(typeof createThreeRenderer, 'function');
     import { createDiscovery, registerDiscovery } from '@oriel-art/artist-sdk/discovery';
     const capabilities = createCapabilities({ schemaVersion: '1.0', technical: { rendering: {
       width: { min: 1, max: 100 }, height: { min: 1, max: 100 }, maxPixels: 10000, formats: ['image/png']
@@ -48,6 +52,10 @@ try {
   `);
   run(process.execPath, ['consumer.mjs'], directory);
   await writeFile(join(directory, 'consumer.ts'), `
+    import { createCanvasRenderer, type RenderSnapshot } from '@oriel-art/artist-sdk/renderers';
+    const renderer = createCanvasRenderer({ draw(ctx, frame) { ctx.clearRect(0, 0, frame.width, frame.height); } });
+    declare const snapshot: RenderSnapshot;
+    renderer.exportPNG({ snapshot });
     import { createCapabilities, createPrintWorkflow, type PrintCapture, type Capabilities } from '@oriel-art/capabilities';
     import { createMetadata, type Metadata } from '@oriel-art/metadata';
     import { createDiscovery, type DiscoveryManifest } from '@oriel-art/artist-sdk/discovery';
