@@ -21,7 +21,7 @@ try {
   run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], directory);
   await writeFile(join(directory, 'consumer.mjs'), `
     import assert from 'node:assert/strict';
-    import { createCapabilities } from '@oriel-art/capabilities';
+    import { createCapabilities, createPrintWorkflow } from '@oriel-art/capabilities';
     import { createMetadata } from '@oriel-art/metadata';
     import { createArtwork } from '@oriel-art/artist-sdk';
     import { createDiscovery, registerDiscovery } from '@oriel-art/artist-sdk/discovery';
@@ -34,10 +34,19 @@ try {
     registerDiscovery(artwork, createDiscovery({ schemaVersion: 'oriel-artwork/1.0', artwork: { id: 'test', version: '1' },
       metadata: metadata.getMetadata(), capabilities: capabilities.getCapabilities() }));
     assert.equal((await artwork.query('metadata')).project.title, 'Test');
+    const printPolicy = capabilities.getCapabilities();
+    printPolicy.technical.print = { width: { min: 1, max: 1 }, height: { min: 1, max: 1 }, dpi: { min: 100, max: 100 } };
+    const workflow = createPrintWorkflow({ artwork, capabilities: printPolicy,
+      capture: art => ({ recipe: art.getRecipe(), frame: { aspectRatio: 1 } }) });
+    const job = workflow.captureJob(JSON.stringify({ id: 'fixture', request: { width: 100, height: 100, format: 'image/png',
+      print: { width: 1, height: 1, unit: 'in', dpi: 100 } }, specification: {
+        paper: 'Fixture', printer: 'Fixture', colourProfile: 'Fixture', renderingIntent: 'perceptual', grain: 'Fixture', lineWeight: 'Fixture'
+      } }));
+    assert.equal((await job.screen()).screening.status, 'requires-evaluation');
   `);
   run(process.execPath, ['consumer.mjs'], directory);
   await writeFile(join(directory, 'consumer.ts'), `
-    import { createCapabilities, type Capabilities } from '@oriel-art/capabilities';
+    import { createCapabilities, createPrintWorkflow, type PrintCapture, type Capabilities } from '@oriel-art/capabilities';
     import { createMetadata, type Metadata } from '@oriel-art/metadata';
     import { createDiscovery, type DiscoveryManifest } from '@oriel-art/artist-sdk/discovery';
     declare const capabilities: Capabilities;
@@ -46,6 +55,8 @@ try {
     createCapabilities(capabilities).validateRequest({ width: 10, height: 10, format: 'image/png' });
     createMetadata(metadata).getProvenanceReferences();
     createDiscovery(manifest).getDiscovery();
+    declare const captured: PrintCapture;
+    createPrintWorkflow({ artwork: { id: 'test', version: '1' }, capabilities, capture: () => captured });
   `);
   run(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '--strict', '--noEmit', '--target', 'ES2022',
     '--module', 'NodeNext', '--moduleResolution', 'NodeNext', 'consumer.ts'], directory);

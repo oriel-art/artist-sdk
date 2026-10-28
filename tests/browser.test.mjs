@@ -75,6 +75,64 @@ test('static discovery and runtime bridge queries return the same data without c
   assert.equal(result.removed, 'UNSUPPORTED');
 });
 
+test('print workflow screens an isolated captured render while live parameters and time change', async t => {
+  const page = await open(t);
+  const result = await page.evaluate(async () => {
+    const { createArtwork, fromRecipe } = await import('/src/index.js');
+    const { createShaderRenderer } = await import('/src/webgl.js');
+    const { createPrintWorkflow } = await import('/src/capabilities.js');
+    const parameters = { value: { type: 'number', min: 0, max: 1, default: 0.25 } };
+    const art = createArtwork({ id: 'print-browser', version: '1', seed: 'fixture', parameters, mode: 'studio' });
+    const fragment = 'precision mediump float; uniform float u_value; uniform float u_time; void main() { gl_FragColor = vec4(u_value, u_time / 100.0, 0.3, 1.0); }';
+    const bindings = { resolution: null, time: null, seed: null };
+    let time = 12;
+    const live = createShaderRenderer({ canvas: document.createElement('canvas'), artwork: art, fragment, bindings,
+      uniforms: ({ parameters }) => ({ u_value: parameters.value, u_time: time }) });
+    const digest = async blob => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))).join(',');
+    live.render({ width: 64, height: 64, time });
+    const reference = await digest(await live.exportPNG());
+    let release, inspectedHash;
+    const ready = new Promise(resolve => { release = resolve; });
+    const workflow = createPrintWorkflow({ artwork: art, capabilities: { schemaVersion: '1.0', technical: {
+      rendering: { width: { min: 1, max: 256 }, height: { min: 1, max: 256 }, maxPixels: 65536, formats: ['image/png'], aspectRatios: [1] },
+      print: { width: { min: 1, max: 1 }, height: { min: 1, max: 1 }, dpi: { min: 64, max: 64 } }
+    } }, capture: art => ({ recipe: art.getRecipe(), frame: { aspectRatio: 1, elapsedSeconds: time },
+      uniforms: { u_value: art.parameters.value, u_time: time } }),
+    inspect: async (job, { signal }) => {
+      await ready;
+      const restored = fromRecipe(job.capture.recipe, { id: art.id, version: art.version, parameters });
+      const isolated = createShaderRenderer({ canvas: document.createElement('canvas'), artwork: restored, fragment, bindings,
+        uniforms: () => job.capture.uniforms });
+      try {
+        isolated.render({ width: job.request.width, height: job.request.height, time: job.capture.frame.elapsedSeconds });
+        inspectedHash = await digest(await isolated.exportPNG({ signal }));
+        // Fixture outcomes only. Byte equality is not a physical print-quality test.
+        return { grain: { passed: false }, lineWeight: { passed: false }, colour: { passed: false } };
+      } finally { isolated.dispose(); }
+    } });
+    try {
+      const job = workflow.captureJob({ id: 'browser-fixture', request: { width: 64, height: 64, format: 'image/png',
+        print: { width: 1, height: 1, unit: 'in', dpi: 64 } }, specification: {
+        paper: 'Fixture', printer: 'Fixture', colourProfile: 'Fixture', renderingIntent: 'perceptual', grain: 'Fixture', lineWeight: 'Fixture'
+      } });
+      const pending = job.screen();
+      art.setParameters({ value: 0.75 }); time = 80;
+      live.render({ width: 64, height: 64, time });
+      const before = live.getSnapshot();
+      release();
+      const report = await pending;
+      return { reference, inspectedHash, report, before, after: live.getSnapshot() };
+    } finally { live.dispose(); }
+  });
+  assert.equal(result.reference, result.inspectedHash);
+  assert.deepEqual(result.before, result.after);
+  assert.equal(result.report.job.capture.uniforms.u_value, 0.25);
+  assert.equal(result.report.job.capture.frame.elapsedSeconds, 12);
+  assert.equal(result.before.time, 80);
+  assert.equal(result.report.screening.status, 'unsupported');
+  assert.equal(result.report.printApproval, 'not-granted');
+});
+
 test('real WebGL export is reproducible and preserves live state, dimensions, time and uniforms', async t => {
   const page = await open(t, '/');
   assert.equal(new URL(page.url()).pathname, '/examples/webgl/');

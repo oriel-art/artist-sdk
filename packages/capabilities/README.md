@@ -31,6 +31,18 @@ Publish capabilities for the current mode; use the bridge operation manifest to
 determine viewer access. State replay does not establish pixel-identical rendering,
 and accepted print dimensions or runtime screening do not grant print approval.
 
+The experimental `createPrintWorkflow()` and `PRINT_JOB_VERSION` exports support
+capturing recipes/frames/uniforms with a declared print policy and physical print
+specification, then screening with an artist-owned inspector. Proof decisions
+remain outside the SDK. See `dist/print-workflow-pilot.md` for the API and trial.
+Structured media/profile/border settings and bounded extensions are optional.
+Checks distinguish `passed`, `failed` and `not-assessed`; legacy `passed` booleans
+remain accepted. Constraint rejection errors expose detailed `issues`.
+For external candidates, `captureJob(jsonText)` checks a 20 KiB UTF-8 envelope
+before parsing; callers must also bound transport reads. Object inputs remain
+for trusted in-process use. Captured signed zero is normalized before screening
+and persistence to keep JSON replay consistent.
+
 The full contract and discovery integration are included in `dist/guide.md`
 (maintained in the repository's `docs/capabilities-and-metadata.md`). Sources are under `src/` at the
 repository root; `npm run build` generates this package's standalone `dist/`.

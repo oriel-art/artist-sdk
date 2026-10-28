@@ -1,6 +1,7 @@
 import { requireValue, object } from './errors.js';
 
-// Bounded, data-only snapshots. Never call toJSON, accessors, or artwork hooks.
+// Accepted snapshots are bounded JSON data; object enumeration itself is engine-dependent.
+// Use a byte-bounded JSON ingress for external data, not arbitrary live JS objects/proxies.
 export function data(value, maxBytes = 32768) {
   let nodes = 0, bytes = 0;
   const charge = count => {
@@ -31,7 +32,9 @@ export function data(value, maxBytes = 32768) {
     if (typeof v === 'string') { string(v); return v; }
     if (v === null || typeof v === 'boolean') { charge(v === null || v === true ? 4 : 5); return v; }
     if (typeof v === 'number') {
-      requireValue(Number.isFinite(v), 'Numbers must be finite'); charge(String(v).length); return v;
+      requireValue(Number.isFinite(v), 'Numbers must be finite'); charge(String(v).length);
+      // JSON persists -0 as 0. Screen and replay the same normalized value.
+      return v === 0 ? 0 : v;
     }
     requireValue(Array.isArray(v) || object(v), 'Expected JSON data');
     requireValue(!seen.has(v), 'Circular data is not supported');
@@ -41,10 +44,12 @@ export function data(value, maxBytes = 32768) {
     charge(2); // Braces or brackets.
     const result = array ? [] : {};
     let count = 0;
-    for (const key of Reflect.ownKeys(v)) {
-      if (array && key === 'length') continue;
+    // Reject oversized enumerable data before materializing our own complete key list.
+    // Engines may still allocate enumeration state; this is not an ingress byte limit.
+    for (const key in v) {
+      if (!Object.hasOwn(v, key)) continue;
       if (count++) charge(1); // Comma.
-      requireValue(typeof key === 'string' && !['__proto__', 'constructor', 'prototype'].includes(key), 'Unsafe data key');
+      requireValue(!['__proto__', 'constructor', 'prototype'].includes(key), 'Unsafe data key');
       if (array) requireValue(/^(0|[1-9]\d*)$/.test(key) && Number(key) < v.length, 'Invalid array key');
       else { string(key); charge(1); } // Key and colon, before reading its value.
       const descriptor = Object.getOwnPropertyDescriptor(v, key);
@@ -52,10 +57,24 @@ export function data(value, maxBytes = 32768) {
       result[key] = visit(descriptor.value, depth + 1);
     }
     if (array) requireValue(count === v.length, 'Sparse arrays are not supported');
+    // Preserve rejection of symbols and hidden properties, including on arrays.
+    // For object inputs, many hidden/symbol keys can still make this expensive.
+    requireValue(Reflect.ownKeys(v).length === count + (array ? 1 : 0), 'Symbols and hidden properties are not supported');
     seen.delete(v);
     return result;
   };
   return visit(value, 0);
+}
+
+// The caller must also bound transport/file reads before constructing this string.
+export function parseJSONData(input, maxBytes) {
+  requireValue(typeof input === 'string', 'Expected JSON text');
+  // UTF-16 length is a lower bound on UTF-8 length; encoding allocation is bounded.
+  requireValue(input.length <= maxBytes, 'JSON input exceeds byte limit', 'LIMIT');
+  requireValue(new TextEncoder().encode(input).length <= maxBytes, 'JSON input exceeds byte limit', 'LIMIT');
+  let parsed;
+  try { parsed = JSON.parse(input); } catch { requireValue(false, 'Invalid JSON input'); }
+  return data(parsed, maxBytes);
 }
 
 export function fields(value, allowed, label) {

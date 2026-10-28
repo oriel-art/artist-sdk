@@ -1,4 +1,4 @@
-import { createCapabilities, type Capabilities, type RenderRequest } from '@oriel-art/capabilities';
+import { createCapabilities, createPrintWorkflow, type Capabilities, type RenderRequest, type PrintSpecification, type PrintRequest } from '@oriel-art/capabilities';
 import { createMetadata, type Metadata } from '@oriel-art/metadata';
 import { createDiscovery, parseDiscovery, registerDiscovery } from '@oriel-art/artist-sdk/discovery';
 import { getCapabilities } from '@oriel-art/artist-sdk/capabilities';
@@ -28,3 +28,25 @@ const invalidUnit: RenderRequest = { ...request, print: { width: 1, height: 1, u
 void missingFormat; void invalidUnit;
 // @ts-expect-error rounding is a declared policy, not an arbitrary tolerance
 capabilities.technical.rendering.aspectRatioRounding = 'anything';
+
+const printSpecification: PrintSpecification = { paper: 'Fixture', printer: 'Fixture', colourProfile: 'Fixture',
+  renderingIntent: 'relative-colorimetric', grain: 'Artist criterion', lineWeight: 'Artist criterion',
+  media: { finish: 'matte', settings: { candidate: true } }, blackPointCompensation: false,
+  iccProfile: { name: 'fixture.icc', sha256: 'a'.repeat(64) },
+  borders: { unit: 'mm', top: 0, right: 0, bottom: 0, left: 0 },
+  colourCriteria: [{ metric: 'fixture', maximum: 1, unit: 'fixture', method: 'fixture' }],
+  extensions: { 'art.kepler.print.v1': { candidate: true } } };
+const printRequest: PrintRequest = { ...request, print: { width: 1, height: 1, unit: 'in', dpi: 100 } };
+const printWorkflow = createPrintWorkflow({ artwork: { id: 'demo', version: '1', seed: 'test' }, capabilities,
+  capture: art => ({ recipe: { artworkId: art.id, artworkVersion: art.version, seed: art.seed }, frame: { aspectRatio: 1 } }),
+  inspect: async (job, { signal }) => ({ grain: { passed: !signal.aborted }, lineWeight: { passed: true },
+    colour: { status: 'not-assessed', notes: job.specification.colourProfile } }) });
+const printJob = printWorkflow.captureJob({ id: 'proof-1', request: printRequest, specification: printSpecification });
+printWorkflow.captureJob(JSON.stringify({ id: 'proof-json', request: printRequest, specification: printSpecification }));
+const printReport = await printJob.screen();
+const approval: 'not-granted' = printReport.printApproval;
+void approval;
+// @ts-expect-error capture must finish synchronously before any export work
+createPrintWorkflow({ artwork: { id: 'demo', version: '1' }, capabilities, capture: async () => ({ recipe: { artworkId: 'demo', artworkVersion: '1' }, frame: { aspectRatio: 1 } }) });
+// @ts-expect-error physical dimensions and DPI are required for print jobs
+printWorkflow.captureJob({ id: 'proof-2', request, specification: printSpecification });

@@ -81,3 +81,83 @@ export function getCapabilities(description: unknown): Capabilities;
 export function validateRequest(description: Capabilities, request: unknown): ValidationResult;
 export function evaluateRequest(description: Capabilities, request: RenderRequest, evaluator?: RequestEvaluator, options?: EvaluationOptions): Promise<ValidationResult>;
 export function createCapabilities(description: Capabilities, options?: { evaluate?: RequestEvaluator }): CapabilitiesProvider;
+
+export const PRINT_JOB_VERSION: 'oriel-print-job/1.0';
+/** Finite JSON data; signed zero is normalized to positive zero before screening/persistence. */
+export type PrintJSON = null | boolean | number | string | PrintJSON[] | { [key: string]: PrintJSON };
+export interface PrintArtwork { readonly id: string; readonly version: string }
+export interface PrintSpecification {
+  paper: string;
+  printer: string;
+  /** Artist/printer-selected profile identifier. The SDK does not apply ICC transforms. */
+  colourProfile: string;
+  renderingIntent: 'perceptual' | 'relative-colorimetric' | 'absolute-colorimetric' | 'saturation';
+  /** Artist-owned acceptance criteria, including units where relevant. */
+  grain: string;
+  lineWeight: string;
+  notes?: string;
+  media?: { manufacturer?: string; stock?: string; finish?: string; weightGsm?: number;
+    inkSet?: string; settings?: { [key: string]: PrintJSON } };
+  /** SHA-256 of the actual ICC file bytes, lowercase hex; descriptive, not verified by the SDK. */
+  iccProfile?: { name: string; sha256: string };
+  blackPointCompensation?: boolean;
+  /** Borders outside the image area. request.print dimensions always describe the image. */
+  borders?: { unit: 'in' | 'cm' | 'mm'; top: number; right: number; bottom: number; left: number };
+  /** Artist/printer-defined maximum criteria. Measurement remains the inspector's job. */
+  colourCriteria?: { metric: string; maximum: number; unit: string; method: string }[];
+  /** Use namespaced keys for integration-owned data; shares the 8 KiB specification budget. */
+  extensions?: { [namespace: string]: PrintJSON };
+}
+export type PrintRequest = RenderRequest & { print: NonNullable<RenderRequest['print']> };
+export interface PrintCapture {
+  /** Replay data belongs to the artist's recipe contract; identity must match artwork. */
+  recipe: { artworkId: string; artworkVersion: string; [key: string]: PrintJSON };
+  /** Other keys carry artist-defined time/cadence/state. Ratios must match declared policy. */
+  frame: { aspectRatio: number; [key: string]: PrintJSON };
+  /** Plain JSON only; convert typed arrays to arrays in the capture callback. */
+  uniforms?: { [key: string]: PrintJSON };
+}
+export interface PrintJobRecord {
+  schemaVersion: typeof PRINT_JOB_VERSION;
+  id: string;
+  artwork: PrintArtwork;
+  capabilities: Capabilities;
+  request: PrintRequest;
+  specification: PrintSpecification;
+  capture: PrintCapture;
+}
+/** Legacy input: false means failed; use PrintAssessment for unassessed checks. */
+export interface PrintCheck { passed: boolean; status?: never; notes?: string }
+export interface PrintAssessment { status: 'passed' | 'failed' | 'not-assessed'; passed?: never; notes?: string }
+export interface PrintChecks { grain: PrintCheck | PrintAssessment; lineWeight: PrintCheck | PrintAssessment; colour: PrintCheck | PrintAssessment }
+/** Constraint rejection errors retain code/message and expose isolated validation issues. */
+export interface PrintConstraintError extends Error { code: string; issues: ValidationIssue[] }
+export type PrintInspector = (job: PrintJobRecord, context: { signal: AbortSignal }) => PrintChecks | Promise<PrintChecks>;
+export interface PrintScreeningReport {
+  job: PrintJobRecord;
+  screening: ValidationResult;
+  checks?: PrintChecks;
+  /** Screening never records proof approval. Keep physical decisions outside the SDK. */
+  printApproval: 'not-granted';
+}
+export interface PrintJob {
+  getJob(): PrintJobRecord;
+  validate(): ValidationResult;
+  screen(options?: EvaluationOptions): Promise<PrintScreeningReport>;
+}
+export interface PrintWorkflow {
+  getCapabilities(): Capabilities;
+  /** Captures synchronously. External data: raw JSON text limited to 20 KiB before parsing;
+   * also bound transport reads. Object inputs are for trusted in-process callers and do
+   * not provide a hard bound on the engine's enumeration cost. Invalid requests throw. */
+  captureJob(input: string | { id: string; request: PrintRequest; specification: PrintSpecification }): PrintJob;
+}
+export function createPrintWorkflow<Artwork extends PrintArtwork>(options: {
+  artwork: Artwork;
+  capabilities: Capabilities;
+  /** Read-only, synchronous snapshot of recipe, frame and uniforms. Never render here. */
+  capture: (artwork: Artwork, context: { request: PrintRequest; specification: PrintSpecification }) => PrintCapture;
+  /** Reuse a stable function: at most four inspections across workflows in one module.
+   * Timed-out/cancelled work retains capacity until it settles. */
+  inspect?: PrintInspector;
+}): PrintWorkflow;
