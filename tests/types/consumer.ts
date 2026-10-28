@@ -1,4 +1,4 @@
-import { createCapabilities, createPrintWorkflow, type Capabilities, type RenderRequest, type PrintSpecification, type PrintRequest } from '@oriel-art/capabilities';
+import { createCapabilities, createPrintWorkflow, type Capabilities, type RenderRequest, type PrintSpecification, type PrintRequest, type PrintScreeningReport } from '@oriel-art/capabilities';
 import { createMetadata, type Metadata } from '@oriel-art/metadata';
 import { createDiscovery, parseDiscovery, registerDiscovery } from '@oriel-art/artist-sdk/discovery';
 import { getCapabilities } from '@oriel-art/artist-sdk/capabilities';
@@ -44,8 +44,10 @@ const printWorkflow = createPrintWorkflow({ artwork: { id: 'demo', version: '1',
 const printJob = printWorkflow.captureJob({ id: 'proof-1', request: printRequest, specification: printSpecification });
 printWorkflow.captureJob(JSON.stringify({ id: 'proof-json', request: printRequest, specification: printSpecification }));
 const printReport = await printJob.screen();
-const approval: 'not-granted' = printReport.printApproval;
-void approval;
+const savedReport: PrintScreeningReport = { job: printReport.job, screening: printReport.screening };
+void savedReport;
+// @ts-expect-error screening reports no longer expose a print-approval field
+printReport.printApproval;
 // @ts-expect-error capture must finish synchronously before any export work
 createPrintWorkflow({ artwork: { id: 'demo', version: '1' }, capabilities, capture: async () => ({ recipe: { artworkId: 'demo', artworkVersion: '1' }, frame: { aspectRatio: 1 } }) });
 // @ts-expect-error physical dimensions and DPI are required for print jobs

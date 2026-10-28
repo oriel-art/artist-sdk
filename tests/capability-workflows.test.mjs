@@ -87,7 +87,7 @@ test('mode discovery preserves rounding policy and advertises no implicit bridge
   assert.equal(validateRequest(rendererCapabilities(), { ...output(2048, 1088), state: { deterministic: true } }).status, 'unsupported');
 });
 
-test('print screening stays bound to a captured composition and frame without granting approval', async () => {
+test('print screening stays bound to a captured composition and frame', async () => {
   const { artwork, unregister } = createModeExample('studio');
   const frame = { elapsedSeconds: 12.5, cadence: 1, aspectRatio: EXAMPLE_ASPECT_RATIO };
   const request = { ...output(2048, 1088), print: { width: 8, height: 4.25, unit: 'in', dpi: 256 } };
@@ -104,7 +104,7 @@ test('print screening stays bound to a captured composition and frame without gr
   assert.equal(job.validate().status, 'requires-evaluation');
   const result = await job.screen();
   assert.equal(result.screening.status, 'supported');
-  assert.equal(result.printApproval, 'not-granted');
+  assert.equal(Object.hasOwn(result, 'printApproval'), false);
   assert.deepEqual(inspection, captured);
   assert.deepEqual(result.job, captured);
   assert.deepEqual(job.getJob(), captured);

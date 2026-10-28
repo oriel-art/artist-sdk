@@ -41,19 +41,19 @@ test('capture binds recipe, frame, uniforms, policy and print conditions before 
   assert.equal(report.job.schemaVersion, PRINT_JOB_VERSION);
   assert.deepEqual(report.job, saved); assert.deepEqual(received, saved);
   assert.equal(report.screening.status, 'supported');
-  assert.equal(report.printApproval, 'not-granted');
+  assert.equal(Object.hasOwn(report, 'printApproval'), false);
   assert.deepEqual(report.checks, passed());
   report.job.capture.frame.elapsedSeconds = 777;
   assert.deepEqual(job.getJob(), saved);
   assert.deepEqual(JSON.parse(JSON.stringify(saved)), saved);
 });
 
-test('physical screening remains required with no inspector, even for an optional policy', async () => {
+test('screening remains unassessed with no inspector, even for an optional policy', async () => {
   const job = workflow().captureJob(input());
   assert.equal(job.validate().status, 'requires-evaluation');
   const report = await job.screen();
   assert.equal(report.screening.status, 'requires-evaluation');
-  assert.equal(report.checks, undefined); assert.equal(report.printApproval, 'not-granted');
+  assert.equal(report.checks, undefined); assert.equal(Object.hasOwn(report, 'printApproval'), false);
 });
 
 test('unsupported and invalid requests fail before capture, including undeclared print support', () => {
@@ -116,7 +116,7 @@ test('asynchronous capture is rejected and does not inspect', () => {
   assert.equal(inspections, 0);
 });
 
-test('concurrent screens retain their own check evidence and never grant proof approval', async () => {
+test('concurrent screens retain their own check evidence', async () => {
   const gates = [Promise.withResolvers(), Promise.withResolvers()];
   let calls = 0;
   const job = workflow({ inspect: () => gates[calls++].promise }).captureJob(input());
@@ -128,7 +128,6 @@ test('concurrent screens retain their own check evidence and never grant proof a
   assert.deepEqual(a.checks, passed()); assert.equal(a.screening.status, 'supported');
   assert.deepEqual(b.checks, failed); assert.equal(b.screening.status, 'unsupported');
   assert.deepEqual(b.screening.issues.map(i => i.source), ['runtime']);
-  assert.equal(a.printApproval, 'not-granted'); assert.equal(b.printApproval, 'not-granted');
 });
 
 test('a stable inspector shares four slots across workflows and retains them after timeout or cancellation', async t => {
@@ -185,7 +184,7 @@ test('structured print conditions are validated and preserved without changing i
   assert.deepEqual(received.specification, expected.specification);
   assert.deepEqual(report.job.specification, expected.specification);
   assert.deepEqual(report.job.request, expected.request);
-  assert.equal(report.printApproval, 'not-granted');
+  assert.equal(Object.hasOwn(report, 'printApproval'), false);
 });
 
 test('invalid structured settings and extension payloads reject before capture', () => {
@@ -223,7 +222,7 @@ test('unassessed quality remains pending, failure dominates pending, and legacy 
     assert.equal(report.screening.status, expected);
     assert.deepEqual(report.checks, checks);
     assert.equal(report.screening.issues.filter(issue => issue.code === 'NOT_ASSESSED').length, statuses.filter(status => status === 'not-assessed').length);
-    assert.equal(report.printApproval, 'not-granted');
+    assert.equal(Object.hasOwn(report, 'printApproval'), false);
   }
   const legacy = passed(); legacy.colour.passed = false;
   const report = await workflow({ inspect: () => legacy }).captureJob(input()).screen();

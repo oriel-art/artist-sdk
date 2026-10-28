@@ -129,7 +129,7 @@ translations, optional licensing, and unverified references fit their workflow.
 | `1512 / 803` rejected a normally rounded `2048 × 1088` export | Default nearest-integer aspect-ratio matching for either fixed dimension; optional `strict` retains the old `1e-6` relative test; regression tests include the reported dimensions, adjacent failures, portrait exports, and independent technical/artist constraints |
 | Renderer, studio/collector, and viewer capabilities differ | Runnable mode example and guidance publish current-mode availability separately from renderer support and actual registered bridge commands |
 | Restoring seed, parameters, time, cadence and aspect is not cross-GPU pixel identity | Document explicit state replay contracts; examples advertise save/restore without the broad `deterministic` flag; consumers cannot infer pixel identity from that flag |
-| Pixel/DPI acceptance is not print approval | Saved-print job example binds runtime checks to an immutable recipe/frame/output snapshot and retains a separate `not-granted` approval status |
+| Pixel/DPI acceptance is not print approval | Saved-print job example binds runtime checks to an immutable recipe/frame/output snapshot. The initial constant approval field was subsequently removed; the SDK records artist-defined constraints and screening outcomes. |
 
 The print constraints used in the reported trials and the new SDK example are
 test fixtures, **not approved Kepler's Dream print specifications**. The new
@@ -160,5 +160,7 @@ issues, and documented replay/source-identity/image-linking patterns. See the
 
 The 8 × 4.25 inch / 256 DPI matte cotton-rag/pigment-inkjet candidate is
 provisional. Exact printer, stock, profile and measurable criteria remain
-unresolved. No physical proof was produced; quality remains unassessed and
-approval remains `not-granted`. Software screening does not change that status.
+unresolved. No physical proof was produced and the reported quality checks were
+unassessed. The pilot initially included a constant `not-granted` approval field;
+the agreed SDK scope now ends at capture and screening, so that field has been
+removed. Physical proof is not a prerequisite for using the SDK output to print.

@@ -42,7 +42,9 @@ try {
       print: { width: 1, height: 1, unit: 'in', dpi: 100 } }, specification: {
         paper: 'Fixture', printer: 'Fixture', colourProfile: 'Fixture', renderingIntent: 'perceptual', grain: 'Fixture', lineWeight: 'Fixture'
       } }));
-    assert.equal((await job.screen()).screening.status, 'requires-evaluation');
+    const report = await job.screen();
+    assert.equal(report.screening.status, 'requires-evaluation');
+    assert.deepEqual(Object.keys(report).sort(), ['job', 'screening']);
   `);
   run(process.execPath, ['consumer.mjs'], directory);
   await writeFile(join(directory, 'consumer.ts'), `
