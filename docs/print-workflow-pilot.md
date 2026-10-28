@@ -6,16 +6,18 @@ composition, frame, output request and physical print specification, then runs
 artist-owned checks against that snapshot. It replaces the need to copy the
 workflow plumbing from `examples/discovery/modes-and-print.mjs`.
 
-The SDK records and screens candidates. **Physical proof decisions stay outside
-the SDK.** It does not apply ICC transformations, render implicitly, measure grain
-or line weight, verify identities, approve a printer, or promise pixel identity
-on another device. A `supported` result means the supplied checks passed for
-this saved job. Every report retains `printApproval: 'not-granted'`.
+The artist defines the constraints and screening criteria. The SDK captures the
+job, validates declared limits and records the supplied checks. A `supported`
+result means those checks passed for this saved job. A downstream print function
+can use the exported image and accompanying report directly; the SDK adds no
+approval step. Rendering, ICC transformations and any measurements needed by the
+artist's checks belong to the integration. Replay across devices depends on the
+renderer and the artist's recipe contract.
 
 Run the complete fixture with `node examples/print-workflow/main.mjs`. All print
 limits and specifications in that example are illustrative, not approved Kepler
 specifications. Its checks report `not-assessed`, so screening remains
-`requires-evaluation` until physical criteria have been evaluated.
+`requires-evaluation` until the supplied checks have been performed.
 
 ## Integration
 
@@ -190,9 +192,23 @@ Migrate unassessed checks to `{ status: 'not-assessed' }`. Supply exactly one of
 Without an inspector, validation and screening return `requires-evaluation`,
 even if the input policy marks generic runtime evaluation optional.
 
-The report contains `job`, `screening`, optional `checks`, and `printApproval`.
+The report contains `job`, `screening`, and optional `checks`.
 Concurrent screens keep their evidence separate. Inspection failures, timeouts
 and cancellation reject the call; they do not produce a successful report.
+
+### Migrating earlier pilot reports
+
+The experimental `printApproval: 'not-granted'` field has been removed from
+runtime reports, TypeScript declarations and the older saved-print example.
+Remove that field from consumer types, report-schema requirements, UI and print
+gating logic. Use `screening.status`, `screening.issues` and optional `checks` to
+show what was assessed. The SDK does not introduce a replacement approval field
+or require a physical proof before printing.
+
+Previously saved reports may still contain the field; consumers can ignore it.
+Keep original report bytes when checking an existing digest. The captured job
+schema (`oriel-print-job/1.0`) is unchanged; the removed field belonged to the
+surrounding report.
 
 ### Records, limits and operating behavior
 
@@ -203,7 +219,7 @@ a unique or authenticated identifier. Store the full record alongside the image.
 On reopening, use the artist's loader with `capture.recipe`, `capture.frame` and
 `capture.uniforms` together. There is no automatic record import or restoration
 API in this pilot; validate imported data and recheck the current trusted policy
-before creating a new job. An imported record is not authority to print.
+before creating a new job.
 
 ### Detailed rejection issues
 
@@ -290,12 +306,10 @@ Before associating imported files, verify both hashes against the saved index,
 check decoded image dimensions, and use the original saved report bytes rather
 than reserializing parsed JSON. Limits, schema checks, replay validation and
 image decoding remain integration code. Digests detect byte changes relative to
-the index; they do not authenticate the index, verify authorship or grant approval.
+the index; they do not authenticate the index or verify authorship.
 
 Changing composition, frame, output, paper, printer, profile or criteria requires
-a new captured job. Proof approval belongs in the external artist/printer system
-with the exact job and print conditions attached. No approval-record API is
-included in this pilot.
+a new captured job so the screening results describe the output being produced.
 
 | Boundary | Limit / behavior |
 | --- | --- |
@@ -321,10 +335,10 @@ cannot be preempted. Function wrappers, separate module copies, processes and
 machines need a host-level resource/service budget. The cap is not a rate limit
 or a distributed cost-control service.
 
-## Mihira trial
+## Capture-and-screen integration checks
 
-1. Agree on one proposed physical size, paper/printer/profile/intent combination,
-   and explicit grain/line-weight/colour criteria. Record them as pilot conditions.
+1. Supply artist-defined output limits, print settings and screening criteria.
+   Clearly label any fixture values used to test the integration.
 2. Integrate the capture callback with Kepler's existing recipe/frame/uniform
    export capture. Confirm no live state changes during capture or screening.
 3. Start screening, change live parameters/time, then confirm the report and
@@ -332,14 +346,16 @@ or a distributed cost-control service.
    the same environment; record browser, GPU and SDK commit with the evidence.
 4. Exercise overload, cancellation, a failing inspector and recovery. Confirm
    collector discovery remains read-only and print support is not added there.
-5. Produce and inspect a physical proof. Record pass/fail decisions externally,
-   linked to the saved record, and report which SDK fields or callback steps
-   caused duplicated work or ambiguity.
+5. Save the report alongside the exported image and verify their digest links.
+   Confirm the downstream print function can use the exported image without
+   an SDK approval field.
 
 Repository fixtures test snapshot isolation and browser rendering behavior. The
-team has also reported successful Kepler integration on Chrome 156.0.8078.48 /
-ANGLE SwiftShader, WebGL 1, including saved-job replay after live edits. This is
-reported integration evidence, not independently reproduced artwork source.
-No physical proof has been reported; actual printer, stock, ICC profile and
-measurable criteria remain unresolved. Real-device and physical-print validation
-remain work to perform with Mihira and the printer.
+team has also reported successful Kepler integration, including saved-job replay
+after live edits. Its retest of `93d28e1` confirmed input rejection before parsing
+or capture, signed-zero normalization, byte-identical PNG replay, cancellation
+recovery and collector isolation. These are reported integration results, not
+independently reproduced artwork source or a retest of the subsequent report-field
+removal. The capture-and-screen pilot is complete for the agreed scope. Physical
+printing and additional device trials are optional integration work, not SDK
+completion requirements.

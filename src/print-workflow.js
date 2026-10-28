@@ -106,7 +106,7 @@ async function inspectJob(inspect, job, signal) {
   }
 }
 
-/** Capture first, then screen one isolated print job. Never renders or approves a proof implicitly. */
+/** Capture first, then screen one isolated print job against artist-defined checks. */
 export function createPrintWorkflow({ artwork, capabilities, capture, inspect }) {
   requireValue(artwork && typeof artwork === 'object', 'An artwork is required');
   const identity = data({ id: artwork.id, version: artwork.version }, 1024);
@@ -144,7 +144,7 @@ export function createPrintWorkflow({ artwork, capabilities, capture, inspect })
         narrowed[source].rendering ??= {};
         narrowed[source].rendering.aspectRatios = [captured.frame.aspectRatio];
       }
-      // Technical acceptance alone can never stand in for print-quality checks.
+      // Keep declared-limit validation distinct from the inspector's checks.
       narrowed.evaluation = 'required';
       const boundPolicy = createCapabilities(narrowed);
       const frameValidation = boundPolicy.validateRequest(output);
@@ -168,7 +168,7 @@ export function createPrintWorkflow({ artwork, capabilities, capture, inspect })
             ? await provider.evaluateRequest(output, options) : provider.validateRequest(output);
           // Aggregate only after the core evaluator has enforced its deadline and cancellation.
           if (checks) screening = screeningResult(checks);
-          return { job: getJob(), screening, ...(checks ? { checks: data(checks, 8192) } : {}), printApproval: 'not-granted' };
+          return { job: getJob(), screening, ...(checks ? { checks: data(checks, 8192) } : {}) };
         }
       });
     }

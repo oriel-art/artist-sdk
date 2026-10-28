@@ -20,7 +20,7 @@ async function inspectSavedFrame(job, { signal }) {
   return {
     grain: { status: 'not-assessed', notes: 'Fixture: grain comparison has not been performed.' },
     lineWeight: { status: 'not-assessed', notes: 'Fixture: line-weight inspection has not been performed.' },
-    colour: { status: 'not-assessed', notes: 'Fixture: no colour-managed output or proof has been assessed.' }
+    colour: { status: 'not-assessed', notes: 'Fixture: colour comparison has not been performed.' }
   };
 }
 
@@ -28,7 +28,7 @@ const workflow = createPrintWorkflow({ artwork, capabilities,
   capture: art => ({ recipe: art.getRecipe(), frame,
     uniforms: { u_grain: art.parameters.grain, u_time: frame.elapsedSeconds } }),
   inspect: inspectSavedFrame });
-const job = workflow.captureJob({ id: 'proof-candidate-1',
+const job = workflow.captureJob({ id: 'print-candidate-1',
   request: { width: 2048, height: 1088, format: 'image/png',
     print: { width: 8, height: 4.25, unit: 'in', dpi: 256 } },
   specification: {
@@ -40,7 +40,7 @@ const job = workflow.captureJob({ id: 'proof-candidate-1',
     lineWeight: 'Compare continuity and visibility against the artist-defined reference',
     media: { finish: 'matte', settings: { candidateOnly: true } },
     extensions: { 'art.oriel.print-pilot.v1': { unresolved: ['printer', 'stock', 'iccProfile', 'criteria'] } },
-    notes: 'Fixture only; physical proof decisions are recorded outside the SDK.'
+    notes: 'Fixture only; replace these criteria with the artist-defined settings.'
   } });
 
 const pending = job.screen();
@@ -50,4 +50,4 @@ const report = await pending;
 console.log(JSON.stringify(report, null, 2));
 // In a browser, download this JSON alongside the exported image. Reopen through
 // the artist's loader using report.job.capture.recipe/frame/uniforms together.
-// The record is descriptive data, not a signature, permission, or proof approval.
+// Use report.screening and report.checks to see the results for this saved job.

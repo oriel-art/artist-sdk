@@ -269,20 +269,22 @@ Hooks should not mutate artwork state.
 For reusable integration, `createPrintWorkflow()` accepts an artwork, declared
 policy, synchronous capture callback and stable inspector. See the
 [print workflow pilot](print-workflow-pilot.md) for physical specifications,
-saved records, operating limits and the Mihira trial. It does not record proof
-decisions. The older mode example below remains a scoped workflow illustration.
+saved records, operating limits and the Mihira trial. The older mode example
+below remains a scoped workflow illustration.
 
 Static validation checks declared output limits, integer dimensions, and DPI
-consistency. Even a runtime `supported` result is acceptance by the supplied
-checks, **not artist approval or a guarantee of physical print quality**.
+consistency. A runtime `supported` result means the supplied checks passed for
+the captured job. The artist defines those checks; the report records their
+results. A print function can use the exported image and report directly, with
+no additional SDK approval step.
 
 In `modes-and-print.mjs`, `createSavedPrintJob()` captures the recipe (including
 frame context) and requested output together, then creates an evaluator bound to
 that snapshot. Its artist-owned `inspect({ recipe, request, signal })` callback
 receives isolated copies. Changes to live parameters, time, the caller's frame
 object, or output request cannot change the job being screened. Creating another
-composition/frame/output requires a new job and a new evaluation; a result must
-not be reused as blanket approval for another seed, frame, size, or print process.
+composition/frame/output requires a new job and a new evaluation so the results
+remain tied to the seed, frame, size and print process that were screened.
 
 The helper accepts artworks created by `createModeExample()` and preserves the
 capability snapshot registered for that artwork. Saved frame ratios must belong
@@ -314,7 +316,7 @@ const job = createSavedPrintJob(studioArtwork, {
 });
 const report = await job.screen();
 // report.job contains the exact saved recipe and requested output.
-// report.screening is the negotiation result; report.printApproval stays 'not-granted'.
+// report.screening contains the result and issues for this saved job.
 ```
 
 The callback contract in this example requires explicit grain, line-weight, and
@@ -324,12 +326,11 @@ workflow plumbing, not an implementation of image-quality measurement. In a real
 integration, inspect the exact saved frame at the requested physical scale and
 use an isolated renderer/worker so live playback remains unchanged.
 
-Physical proofing and approval remain a separate artist/printer process tied to
-the same saved composition/frame, size, paper, printer, colour profile, rendering
-intent, and other relevant conditions. Record those conditions and the approval
-separately in the print job system. `printApproval` is an example report field,
-not a new SDK schema field. The fixture limits here and those reported in the
-Kepler trials are not approved artwork print specifications.
+Earlier pilot reports included a constant `printApproval` field. That field has
+been removed; consumers should use the screening results and remove the old
+field from UI and report-schema requirements. See the [migration guidance](print-workflow-pilot.md#migrating-earlier-pilot-reports).
+The fixture limits here and those reported in the Kepler trials are illustrative;
+integrations supply their own artist-defined print specifications.
 
 ## Metadata contract (schemaVersion: "1.0")
 

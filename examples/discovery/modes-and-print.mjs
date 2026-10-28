@@ -105,8 +105,7 @@ export function createSavedPrintJob(artwork, { frame, request, inspect }) {
     validate: () => provider.validateRequest(job.request),
     async screen(options) {
       const screening = await provider.evaluateRequest(job.request, options);
-      return { job: structuredClone(job), screening,
-        printApproval: 'not-granted' };
+      return { job: structuredClone(job), screening };
     }
   };
 }
@@ -120,7 +119,7 @@ export async function runExample() {
   // must restore/render the supplied recipe in an isolated worker/renderer,
   // inspect the output at the requested physical size, and honor signal.
   const job = createSavedPrintJob(studio.artwork, { frame, request, inspect: async () => ({
-    grain: true, lineWeight: true, colour: false // No colour proof in this fixture.
+    grain: true, lineWeight: true, colour: false // Synthetic failed colour check.
   }) });
   const saved = job.getJob();
   const restored = fromRecipe(saved.recipe, artworkOptions);
@@ -129,7 +128,7 @@ export async function runExample() {
   console.log('Collector supports seeking:', collector.discovery.getCapabilities().technical.animation.seek);
   console.log('Viewer-accessible commands:', studio.artwork.manifest().commands);
   console.log('Rounded print preflight:', job.validate());
-  console.log('Saved-frame screening (not print approval):', await job.screen());
+  console.log('Saved-frame screening:', await job.screen());
   studio.unregister(); collector.unregister();
 }
 

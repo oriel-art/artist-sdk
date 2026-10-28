@@ -130,7 +130,7 @@ test('print workflow screens an isolated captured render while live parameters a
   assert.equal(result.report.job.capture.frame.elapsedSeconds, 12);
   assert.equal(result.before.time, 80);
   assert.equal(result.report.screening.status, 'unsupported');
-  assert.equal(result.report.printApproval, 'not-granted');
+  assert.equal(Object.hasOwn(result.report, 'printApproval'), false);
 });
 
 test('real WebGL export is reproducible and preserves live state, dimensions, time and uniforms', async t => {

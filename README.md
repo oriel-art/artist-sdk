@@ -35,7 +35,7 @@ Included:
 - A reusable experimental print workflow with bounded capture, physical print
   specifications, shared inspector limits, and saved screening reports. Read the
   [Mihira print pilot guide](docs/print-workflow-pilot.md) and run
-  `node examples/print-workflow/main.mjs`. Physical proof decisions stay outside the SDK.
+  `node examples/print-workflow/main.mjs`.
 - Seeded random streams, typed parameter values, traits, and JSON recipes.
 - URL sharing and keyboard shortcuts scoped to the artwork.
 - An optional single-pass WebGL 1 shader runner and isolated PNG rerendering.

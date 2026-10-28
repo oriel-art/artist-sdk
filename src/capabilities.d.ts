@@ -137,8 +137,6 @@ export interface PrintScreeningReport {
   job: PrintJobRecord;
   screening: ValidationResult;
   checks?: PrintChecks;
-  /** Screening never records proof approval. Keep physical decisions outside the SDK. */
-  printApproval: 'not-granted';
 }
 export interface PrintJob {
   getJob(): PrintJobRecord;
