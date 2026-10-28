@@ -1,11 +1,12 @@
 # Capabilities, metadata, and discovery
 
-This local feature introduces `@oriel-art/capabilities` and
+The SDK provides `@oriel-art/capabilities` and
 `@oriel-art/metadata`, plus the SDK's `@oriel-art/artist-sdk/discovery`
 entry point. All three also work as native browser modules from `src/`.
 The two standalone packages contain bundled ESM and TypeScript declarations,
 with no runtime dependencies or required DOM, renderer, wallet, or network.
-They are not published by this change.
+For package selection, installation from tarballs and a minimal integration,
+start with the [artist quickstart](https://github.com/oriel-art/artist-sdk/blob/main/docs/getting-started.md).
 
 ## Run and integrate
 

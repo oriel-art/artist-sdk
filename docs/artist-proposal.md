@@ -14,14 +14,17 @@ and Three.js**,
 adopting the parts of the SDK that suit their practice. Existing sketches,
 control panels, and development environments should remain usable.
 
-**A first experimental SDK pilot is available in the repository.** It focuses
-on Mihira's plain JavaScript/WebGL workflow: seeded parameters, a shader example,
-PNG export, and an artwork bridge. The pilot now also includes an optional info
-popup and parameter-testing tools, prompted by Kepler's Dream's `i` action.
-The [pilot guide](pilot-guide.md) explains
-exactly what works today and how to try it. Mihira's actual artwork still needs
-integration and feedback. Updated October 26, 2026, this proposal describes the
-broader ambition; the capabilities below are planned unless listed in that guide.
+**An experimental SDK is available in the repository.** Start with the
+[artist quickstart](getting-started.md) for installation and working examples.
+Implemented features include seeded parameters and recipes, an optional WebGL 1
+renderer and PNG export, the artwork bridge, info/parameter tools, capabilities,
+metadata, discovery, and capture-and-screen workflows.
+
+Kepler's Dream has reported successful integration, including discovery and
+saved-job replay; see the [feedback record](keplers-dream-feedback.md). This
+document is the broader product proposal, not the API reference. Features below
+remain proposals unless documented as available in the quickstart and integration
+guides.
 
 ## The experience we want to support
 

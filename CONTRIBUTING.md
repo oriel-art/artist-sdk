@@ -86,10 +86,8 @@ Replace the example branch with the appropriate name. In both workflows,
 Do not push directly to `main`, force-push it, or delete it. Use PRs and resolve
 review discussions before merging. All applicable CI checks must pass before merge.
 
-GitHub branch protection is currently unavailable because this private
-repository's plan does not support it. These rules are contribution policy,
-not server-enforced protection. Maintainers should enable protection when the
-repository's plan or visibility permits it, requiring PRs and resolved
+These rules apply regardless of the repository's visibility or configured
+GitHub protections. Maintainers should configure branch protection requiring PRs and resolved
 conversations, blocking force pushes and deletion, and applying the rules to
 administrators. Require CI checks once those checks exist and have run
 successfully; do not configure nonexistent checks. Require an approving review

@@ -2,8 +2,12 @@
 
 Dependency-free ESM for describing and negotiating generative artwork rendering,
 printing, interaction, animation, and reproducibility capabilities. Includes
-TypeScript declarations. This package is in local development and is not published
-by this change.
+TypeScript declarations. This package is experimental.
+
+For installation, follow the [artist quickstart](https://github.com/oriel-art/artist-sdk/blob/main/docs/getting-started.md#standalone-metadata-or-capabilities),
+which builds and installs a tarball from the repository. No registry release is
+needed. If you already use `@oriel-art/artist-sdk`, import its `/capabilities`
+entry point instead; both expose the same API.
 
 ```js
 import { createCapabilities } from '@oriel-art/capabilities';

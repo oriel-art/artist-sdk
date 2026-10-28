@@ -1,7 +1,7 @@
-# Kepler's Dream: integration feedback through alpha.4 and capabilities
+# Kepler's Dream: integration feedback
 
-Recorded October 26, 2026 from the integration report supplied by the project
-team, including follow-up results on alpha.3. This is reported evidence, not a
+Initial report recorded October 26, 2026; subsequent sections include follow-up
+integration reports through the capture-and-screen pilot. This is reported evidence, not a
 reproduction against source held in this repository. Mihira's artwork, reports
 and test suite have not been supplied here. The runnable SDK example remains
 Contour study. Earlier alpha.2 evidence below is retained with its original scope.
@@ -164,3 +164,23 @@ unresolved. No physical proof was produced and the reported quality checks were
 unassessed. The pilot initially included a constant `not-granted` approval field;
 the agreed SDK scope now ends at capture and screening, so that field has been
 removed. Physical proof is not a prerequisite for using the SDK output to print.
+
+## Reported capture-and-screen completion
+
+The team retested `ee4580e` and confirmed that structured settings survived
+capture, unassessed checks remained `requires-evaluation`, constraint errors
+retained details, and saved report/PNG hashes linked correctly. They reported
+70 upstream unit tests, 27 browser tests, TypeScript, package-install and
+Kepler-specific checks passing, with byte-identical replay on Chrome
+156.0.8078.73 / SwiftShader.
+
+Their retest of `93d28e1` found no new integration blocker: oversized ASCII and
+UTF-8 inputs rejected before parsing or capture, the exact 20 KiB boundary
+passed, signed zero normalized without mutating caller inputs, and PNG replay,
+cancellation recovery and collector isolation continued to pass.
+
+The subsequent removal of the constant approval field was validated in the SDK
+with 75 unit tests, 27 browser tests, TypeScript and package-install checks; no
+Kepler retest of that report-shape change is recorded here. Capture and screening
+complete the agreed pilot scope. Additional device trials or physical printing
+are separate integration choices, not requirements for SDK completion.

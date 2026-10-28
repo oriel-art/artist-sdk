@@ -13,8 +13,9 @@ From the updated repository, run `npm run dev` with Node.js 22 or later and open
 The example is Contour study, not Kepler's Dream.
 
 For an existing native-module integration, replace the vendored SDK `src`
-directory as a whole and retain your imports. To create the local package, run
-`npm pack`; an npm-based artwork can install that file:
+directory as a whole and retain your imports. For a new project, follow the
+[artist quickstart](getting-started.md). To create a local package, run `npm ci`
+and then `npm pack` in the repository; an npm-based artwork can install that file:
 
 ```sh
 npm install /absolute/path/to/oriel-art-artist-sdk-0.1.0-alpha.4.tgz
@@ -155,9 +156,10 @@ there is no automatic GPU rollback. Expensive renderers can keep explicit Apply.
 5. Record hands-on review time, remaining manual steps and actual browser/GPU
    details. Review compositions visually; passing checks is not an aesthetic verdict.
 
-Local validation covers 25 unit tests and 25 Chrome/SwiftShader browser tests,
+The original alpha.4 validation covered 25 unit tests and 25 Chrome/SwiftShader browser tests,
 including async redraw failure/conflict/disposal, report persistence and exact
-seed cleanup. Desktop/mobile screenshots were inspected. Alpha.4 still needs
-Kepler's Dream integration and artist review; real-device visuals, 4096 exports,
-other browsers and Verse sandbox validation remain outstanding. Thumbnails and
-their renderer/resource contract belong to the next iteration.
+seed cleanup. Desktop/mobile screenshots were inspected. Later artist integration
+reports and their scope are recorded in the [feedback record](keplers-dream-feedback.md);
+the counts here describe the original alpha.4 work, not the current whole-SDK
+suite. They do not establish coverage of every device/browser or Verse sandbox.
+Thumbnails and their renderer/resource contract remain future work.

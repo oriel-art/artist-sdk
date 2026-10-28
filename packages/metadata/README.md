@@ -2,8 +2,12 @@
 
 Dependency-free ESM for artwork project/edition descriptions, multilingual text,
 licenses, and unverified identity, blockchain, and archive references. Includes
-TypeScript declarations. This package is in local development and is not published
-by this change.
+TypeScript declarations. This package is experimental.
+
+For installation, follow the [artist quickstart](https://github.com/oriel-art/artist-sdk/blob/main/docs/getting-started.md#standalone-metadata-or-capabilities),
+which builds and installs a tarball from the repository. No registry release is
+needed. If you already use `@oriel-art/artist-sdk`, import its `/metadata`
+entry point instead; both expose the same API.
 
 ```js
 import { createMetadata, resolveLocalizedText } from '@oriel-art/metadata';

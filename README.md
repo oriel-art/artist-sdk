@@ -1,80 +1,96 @@
-# artist-sdk
+# Oriel Artist SDK
 
-A small JavaScript SDK for reproducible generative art, with a first pilot for
-plain JavaScript and raw WebGL/GLSL on an HTML canvas.
+JavaScript tools for making generative artworks easier to explore, describe,
+export and reopen. Save a composition's seed and parameters, tell viewers what
+an artwork supports, and capture a particular frame for export or printing.
 
-**Experimental: 0.1.0-alpha.4.** Kepler's Dream improvements were reported on
-alpha.3; alpha.4 addresses the next report/editing feedback and needs artist validation. APIs are
-not stable, and the artwork source/tests are not held in this repository.
-The SDK has no runtime dependencies and works as native browser ES modules.
+Adopt the parts you need while keeping your renderer and artistic decisions.
+The SDK has no runtime dependencies, uses ES modules, and is MIT licensed.
+No wallet, blockchain connection or hosted Oriel service is required.
 
-## Try the pilot
+**Experimental.** The core package is `0.1.0-alpha.4`; the standalone capabilities
+and metadata packages are `0.1.0-alpha.1`. APIs can change. Record the SDK commit
+alongside your artwork release; package version numbers alone do not identify
+every pilot update.
 
-With Node.js 22 or later, run `npm run dev` from this repository. Open
-[the shader studio](http://127.0.0.1:4173/examples/webgl/) or
-[the bridge viewer](http://127.0.0.1:4173/examples/host/).
-No dependency installation or build is needed to run these examples.
+## Start here
 
-Read [Mihira's pilot guide](docs/pilot-guide.md) for integration examples,
-API behavior, limitations, and a concrete feedback session.
-The [info and parameter tools guide](docs/info-and-parameters.md) covers the
-`i` popup for Kepler's Dream and utilities for testing the artwork's parameters.
-The [alpha.3 guide](docs/alpha3-guide.md) covers original artist generators,
-case replay, recipe context, studio controls, and export uniform bindings.
-The [alpha.4 guide](docs/alpha4-guide.md) covers clearer reports, persistent
-summaries/actions, exact-seed guidance and optional live preview.
+With Git and Node.js 22 or later:
 
-Included:
+```sh
+git clone https://github.com/oriel-art/artist-sdk.git
+cd artist-sdk
+npm run dev
+```
 
-- Capabilities and metadata packages with TypeScript declarations, static JSON
-  discovery, and opt-in runtime queries. See the
-  [capabilities and metadata guide](docs/capabilities-and-metadata.md) and run
-  `node examples/discovery/main.mjs` for a working negotiation example.
-  `node examples/discovery/modes-and-print.mjs` demonstrates rounded aspect
-  ratios, studio/collector scope, and print screening of a saved composition/frame.
-- A reusable experimental print workflow with bounded capture, physical print
-  specifications, shared inspector limits, and saved screening reports. Read the
-  [Mihira print pilot guide](docs/print-workflow-pilot.md) and run
-  `node examples/print-workflow/main.mjs`.
-- Seeded random streams, typed parameter values, traits, and JSON recipes.
-- URL sharing and keyboard shortcuts scoped to the artwork.
-- An optional single-pass WebGL 1 shader runner and isolated PNG rerendering.
-- An iframe bridge for discovery, commands, queries, and events.
-- An optional artwork info popup and studio parameter lab with seed reports,
-  artist resolvers, warning/error diagnostics, per-case replay and recipes,
-  searchable choices/swatches, sliders, grouped boundaries, and configurable docking.
-  Alpha.4 adds sortable count tables, labeled case summaries, persistent editing
-  actions, precise seed errors, and opt-in live preview that awaits redraws.
-- A shader studio, host viewer, unit/browser tests, and bundle-size reports.
+Open [the shader studio](http://127.0.0.1:4173/examples/webgl/). Change the seed or
+parameters, pause the animation, then save a PNG and its recipe. The
+[bridge viewer](http://127.0.0.1:4173/examples/host/) shows an artwork communicating
+with its surrounding viewer. These browser demos run directly from source;
+no dependency installation or build is needed.
 
-Keep your own renderer to adopt the core utilities independently. The optional
-runner does not support textures, multipass feedback, or WebGL 2 shaders yet.
-Recipes save seed and resolved parameters, with optional validated artist context
-for restoring a moment through explicit artist hooks. Simulation/session replay
-is not implemented.
-Platform adapters, production bitVerse integration, and publishing are planned.
+**[Follow the artist quickstart](docs/getting-started.md)** to install the SDK in
+your own project, run a minimal example, and choose the modules you need.
 
-For development checks: `npm ci`, `npm test`, `npm run test:types`,
+## What can I use today?
+
+| Need | Available tools |
+| --- | --- |
+| Explore and reopen compositions | Seeded randomness, typed parameter values, saved recipes and explicit artist hooks for restoring frame/state context |
+| Describe an artwork | Project/edition metadata, translations, licensing and descriptive provenance references |
+| Tell viewers what is supported | Technical limits, artist constraints, output validation and optional runtime evaluation |
+| Make an artwork discoverable | Static JSON descriptions and opt-in runtime queries through the artwork bridge |
+| Export a saved frame | Optional WebGL 1 PNG renderer; capture-and-screen workflow for artist-owned export integrations |
+| Build studio controls | Optional info panel, parameter editing, repeatable parameter checks and case replay |
+
+The full `@oriel-art/artist-sdk` package includes these modules. Use
+`@oriel-art/capabilities` or `@oriel-art/metadata` independently when you only need
+artwork descriptions and validation. See [package choices and TypeScript coverage](docs/getting-started.md#choose-your-package).
+
+Keep an existing renderer to adopt the utilities independently. The optional
+shader runner supports WebGL 1 / GLSL ES 1.00 with one fragment pass. Textures,
+multipass feedback, WebGL 2 shaders and other rendering systems require your own
+renderer. Dedicated p5.js, Canvas 2D, Three.js and platform publishing adapters
+are future work.
+
+Recipes capture inputs; your artwork defines how to restore its state. Automatic
+simulation/session replay and cross-device pixel identity are not provided.
+Print screening records artist-defined checks for a saved job; a downstream
+print function can use the exported image and report directly.
+
+## Guides and examples
+
+| Guide | Use it for |
+| --- | --- |
+| [Artist quickstart](docs/getting-started.md) | Installation, package selection and a first integration |
+| [JavaScript / WebGL integration](docs/pilot-guide.md) | Seeds, recipes, your own renderer, PNG export and the iframe bridge |
+| [Capabilities, metadata and discovery](docs/capabilities-and-metadata.md) | Artwork descriptions, output constraints, static JSON and runtime queries |
+| [Capture-and-screen workflow](docs/print-workflow-pilot.md) | Saved compositions, artist-defined screening, limits and report/image linking |
+| [Info and parameter tools](docs/info-and-parameters.md) | Artwork information panels and repeatable parameter exploration |
+| [Recipe and renderer integration](docs/alpha3-guide.md) | Artist generators, frame context and uniform bindings |
+| [Parameter editing and reports](docs/alpha4-guide.md) | Case reports, exact seeds and optional live preview |
+
+Working examples live in [examples/](examples/): the browser studio and host,
+[discovery](examples/discovery/main.mjs), and
+[capture and screening](examples/print-workflow/main.mjs).
+
+Kepler's Dream has reported successful integration and replay testing; the
+[feedback record](docs/keplers-dream-feedback.md) distinguishes those artist
+reports from repository tests. The examples here are sample artworks and
+fixtures, not Kepler's source or artist-approved print specifications.
+
+## Development and future plans
+
+For development checks, run `npm ci`, `npm test`, `npm run test:types`,
 `npm run test:packages`, `npm run test:browser`, and `npm run size`.
-Browser setup is described in the pilot guide.
+Browser setup is described in the [integration guide](docs/pilot-guide.md#verification-and-size).
 
-## Feature plan and roadmap
+The [artist proposal](docs/artist-proposal.md), [feature plan](docs/feature-plan.md),
+[bridge proposal](docs/artwork-bridge.md) and [roadmap](docs/roadmap.md) describe
+broader ambitions, including features not implemented today. Start with the
+quickstart and integration guides for working APIs.
 
-- [Artist proposal](docs/artist-proposal.md): a shareable overview for artists,
-  including the proposed workflow, capabilities, and pilot participation.
-- [Feature plan](docs/feature-plan.md): artist workflows, scope, architecture,
-  rendering, parameters, exploration, and platform integration.
-- [Artwork bridge](docs/artwork-bridge.md): proposed communication between an
-  artwork and its viewer through commands, queries, and events.
-- [Kepler's Dream feedback](docs/keplers-dream-feedback.md): reported evidence,
-  alpha.3 results, alpha.4 responses, and outstanding artist/device validation.
-- [Roadmap](docs/roadmap.md): milestones, dependencies, acceptance criteria,
-  and decisions to resolve through artist trials and future implementation.
-
-These documents describe the broader product direction, including future p5.js,
-Canvas 2D, and Three.js integrations. Use the pilot guide for the implemented API.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch naming conventions,
-pull request workflow, and release policy.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and review policy.
+Use [GitHub issues](https://github.com/oriel-art/artist-sdk/issues) to report a
+problem or propose an integration; include the SDK commit, browser/renderer and
+a minimal reproduction where possible.
